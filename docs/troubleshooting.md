@@ -168,6 +168,7 @@ echo "Decrypted: " . $decrypted . "\n";
 **Symptoms:**
 - `env('MY_SECRET')` returns encrypted value instead of plain text
 - Config values still encrypted
+- Helper functions work but `env()` doesn't
 
 **Solutions:**
 
@@ -202,6 +203,106 @@ use LaravelConfigrypt\Facades\Configrypt;
 $encrypted = env('MY_SECRET'); // Should be ENC:...
 $decrypted = Configrypt::decrypt($encrypted);
 echo $decrypted;
+```
+
+5. **Use helper functions as alternative**:
+```php
+// If auto-decryption isn't working, use helper functions
+$password = configrypt_env('DB_PASSWORD');
+$apiKey = encrypted_env('API_KEY');
+
+// Or use Str macro
+use Illuminate\Support\Str;
+$secret = Str::decryptEnv('JWT_SECRET');
+```
+
+6. **Force auto-decryption manually**:
+```php
+use LaravelConfigrypt\Support\EnvironmentDecryptor;
+
+// Manually trigger decryption of all environment variables
+$envDecryptor = app(EnvironmentDecryptor::class);
+$envDecryptor->decryptAll();
+```
+
+#### Helper Functions Not Working
+
+**Problem**: `configrypt_env()` or `encrypted_env()` functions not available
+
+**Symptoms:**
+- "Call to undefined function configrypt_env()" error
+- Helper functions not found
+
+**Solutions:**
+
+1. **Check Laravel context**:
+```php
+// Helper functions require Laravel application context
+if (!function_exists('configrypt_env')) {
+    echo "Helper functions not loaded\n";
+}
+```
+
+2. **Ensure service provider is loaded**:
+```bash
+php artisan config:clear
+php artisan cache:clear
+```
+
+3. **Test in artisan tinker**:
+```bash
+php artisan tinker
+>>> configrypt_env('TEST_VAR', 'default');
+```
+
+4. **Manual service resolution**:
+```php
+// If helpers don't work, use service directly
+use LaravelConfigrypt\Support\EnvironmentDecryptor;
+
+$envDecryptor = app(EnvironmentDecryptor::class);
+$value = $envDecryptor->get('MY_SECRET');
+```
+
+#### Str Macro Not Working
+
+**Problem**: `Str::decryptEnv()` method not available
+
+**Symptoms:**
+- "Method Illuminate\Support\Str::decryptEnv does not exist" error
+
+**Solutions:**
+
+1. **Check service provider boot**:
+```php
+// Ensure service provider has booted
+use Illuminate\Support\Str;
+
+if (Str::hasMacro('decryptEnv')) {
+    echo "Str macro is available\n";
+} else {
+    echo "Str macro not loaded\n";
+}
+```
+
+2. **Force service provider boot**:
+```php
+// In AppServiceProvider
+public function boot()
+{
+    // Force Configrypt service provider to boot
+    $this->app->register(\LaravelConfigrypt\LaravelConfigryptServiceProvider::class);
+}
+```
+
+3. **Use alternative methods**:
+```php
+// If Str macro isn't available, use helper functions
+$value = configrypt_env('MY_SECRET');
+
+// Or use facades directly
+use LaravelConfigrypt\Facades\ConfigryptEnv;
+$value = ConfigryptEnv::get('MY_SECRET');
 ```
 
 ### Command Issues
@@ -458,10 +559,29 @@ class ConfigryptDiagnose extends Command
         
         try {
             $service = app(ConfigryptService::class);
-            $this->line('✅ Service can be resolved');
+            $this->line('✅ ConfigryptService can be resolved');
             
             $prefix = $service->getPrefix();
             $this->line("Service prefix: {$prefix}");
+            
+            // Check EnvironmentDecryptor
+            $envDecryptor = app(\LaravelConfigrypt\Support\EnvironmentDecryptor::class);
+            $this->line('✅ EnvironmentDecryptor can be resolved');
+            
+            // Check helper functions
+            if (function_exists('configrypt_env')) {
+                $this->line('✅ Helper functions available');
+            } else {
+                $this->error('❌ Helper functions not available');
+            }
+            
+            // Check Str macro
+            if (\Illuminate\Support\Str::hasMacro('decryptEnv')) {
+                $this->line('✅ Str macro available');
+            } else {
+                $this->error('❌ Str macro not available');
+            }
+            
         } catch (Exception $e) {
             $this->error('❌ Service resolution failed: ' . $e->getMessage());
         }
@@ -507,6 +627,42 @@ class ConfigryptDiagnose extends Command
             } else {
                 $this->error("❌ Decryption failed: values don't match");
             }
+            
+            // Test helper functions
+            $this->info('Helper Functions Test:');
+            if (function_exists('configrypt_env')) {
+                // Set test environment variable
+                $_ENV['CONFIGRYPT_TEST_VAR'] = $encrypted;
+                putenv("CONFIGRYPT_TEST_VAR={$encrypted}");
+                
+                $helperResult = configrypt_env('CONFIGRYPT_TEST_VAR');
+                if ($helperResult === $testValue) {
+                    $this->line("✅ configrypt_env() working");
+                } else {
+                    $this->error("❌ configrypt_env() failed");
+                }
+                
+                $aliasResult = encrypted_env('CONFIGRYPT_TEST_VAR');
+                if ($aliasResult === $testValue) {
+                    $this->line("✅ encrypted_env() working");
+                } else {
+                    $this->error("❌ encrypted_env() failed");
+                }
+                
+                // Clean up
+                unset($_ENV['CONFIGRYPT_TEST_VAR']);
+                putenv('CONFIGRYPT_TEST_VAR');
+            } else {
+                $this->error("❌ Helper functions not available");
+            }
+            
+            // Test Str macro
+            if (\Illuminate\Support\Str::hasMacro('decryptEnv')) {
+                $this->line("✅ Str::decryptEnv() macro available");
+            } else {
+                $this->error("❌ Str::decryptEnv() macro not available");
+            }
+            
         } catch (Exception $e) {
             $this->error("❌ Test failed: " . $e->getMessage());
         }

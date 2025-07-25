@@ -230,9 +230,132 @@ class SecureConfigHelper
 
 Laravel Configrypt minimizes exposure of sensitive data:
 
-- Decryption happens only in memory
-- Decrypted values are not written to disk
-- Auto-decryption replaces encrypted values in `$_ENV`
+- Decryption happens only in memory during application bootstrap
+- Decrypted values are not written to disk or persistent storage
+- Auto-decryption replaces encrypted values in `$_ENV`, `$_SERVER`, and via `putenv()`
+- Environment cache clearing uses reflection but doesn't persist changes
+
+### Auto-Decryption Security
+
+When `CONFIGRYPT_AUTO_DECRYPT=true` is enabled, additional security considerations apply:
+
+#### ✅ Auto-Decryption Security Features
+
+```php
+// Auto-decryption security characteristics:
+// 1. Runs during early service provider registration (limited attack surface)
+// 2. Only processes values with correct encryption prefix
+// 3. Failed decryptions are handled gracefully without breaking application
+// 4. Decrypted values stored only in runtime memory
+// 5. No persistent changes to environment files
+```
+
+**Security Benefits:**
+- **Limited exposure window**: Decryption happens once during bootstrap, not on every request
+- **Prefix protection**: Only `ENC:` prefixed values are processed, preventing accidental decryption
+- **Graceful failures**: Invalid encrypted values don't break the application
+- **Memory-only storage**: Decrypted values exist only in process memory
+
+#### ⚠️ Auto-Decryption Security Considerations
+
+**Environment Variable Visibility:**
+```php
+// After auto-decryption, decrypted values are visible in:
+// - $_ENV array
+// - $_SERVER array (if applicable)
+// - getenv() calls
+// - env() function calls
+
+// Consider this when:
+// - Using process monitoring tools
+// - Running in shared hosting environments
+// - Using debugging tools that inspect environment variables
+```
+
+**Process Memory Security:**
+```php
+// Decrypted values remain in memory until process termination
+// This is normal for any application using sensitive configuration
+// But consider:
+// - Memory dumps (in development/debugging)
+// - Process inspection tools
+// - Long-running processes (workers, queues)
+```
+
+#### 🔒 Auto-Decryption Best Practices
+
+**1. Environment Isolation:**
+```bash
+# Only enable auto-decryption in secure environments
+# Development
+CONFIGRYPT_AUTO_DECRYPT=true
+
+# Production (ensure secure deployment environment)
+CONFIGRYPT_AUTO_DECRYPT=true
+
+# Shared/untrusted environments
+CONFIGRYPT_AUTO_DECRYPT=false  # Use helper functions instead
+```
+
+**2. Monitoring and Auditing:**
+```php
+// Log auto-decryption events for security auditing
+class SecureConfigryptProvider extends LaravelConfigryptServiceProvider
+{
+    protected function earlyAutoDecryptEnvironmentVariables(): void
+    {
+        $decryptedCount = 0;
+        
+        foreach ($_ENV as $key => $value) {
+            if (str_starts_with($value, $this->prefix)) {
+                // Log for security audit
+                Log::info('Auto-decrypting environment variable', [
+                    'key' => $key,
+                    'prefix' => $this->prefix,
+                    'timestamp' => now(),
+                ]);
+                
+                $decryptedCount++;
+            }
+        }
+        
+        if ($decryptedCount > 0) {
+            Log::info('Auto-decryption completed', [
+                'variables_decrypted' => $decryptedCount,
+                'timestamp' => now(),
+            ]);
+        }
+        
+        parent::earlyAutoDecryptEnvironmentVariables();
+    }
+}
+```
+
+**3. Alternative for High-Security Environments:**
+```php
+// For maximum security, disable auto-decryption and use explicit helpers
+class HighSecurityConfig
+{
+    private ConfigryptService $configrypt;
+    
+    public function __construct()
+    {
+        $this->configrypt = app(ConfigryptService::class);
+    }
+    
+    public function getSecret(string $key): ?string
+    {
+        $value = $_ENV[$key] ?? null;
+        
+        if ($value && $this->configrypt->isEncrypted($value)) {
+            // Decrypt on-demand, don't store in environment
+            return $this->configrypt->decrypt($value);
+        }
+        
+        return $value;
+    }
+}
+```
 
 ### Error Handling
 
