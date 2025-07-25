@@ -18,8 +18,8 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use LaravelConfigrypt\Services\ConfigryptService;
 use Illuminate\Support\Str;
+use LaravelConfigrypt\Services\ConfigryptService;
 
 echo "=== Laravel Configrypt Basic Usage Example ===\n\n";
 

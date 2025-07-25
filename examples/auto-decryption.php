@@ -22,11 +22,10 @@
  * - Laravel application context
  * - CONFIGRYPT_KEY or APP_KEY environment variable set
  */
-
 echo "=== Laravel Configrypt Auto-Decryption Feature Example ===\n\n";
 
 // Note: This example requires Laravel application context
-if (!function_exists('app') || !function_exists('configrypt_env')) {
+if (! function_exists('app') || ! function_exists('configrypt_env')) {
     echo "❌ This example requires Laravel application context.\n";
     echo "Please run this in Laravel artisan tinker:\n";
     echo "php artisan tinker\n";
@@ -34,16 +33,16 @@ if (!function_exists('app') || !function_exists('configrypt_env')) {
     exit(1);
 }
 
+use LaravelConfigrypt\LaravelConfigryptServiceProvider;
 use LaravelConfigrypt\Services\ConfigryptService;
 use LaravelConfigrypt\Support\EnvironmentDecryptor;
-use LaravelConfigrypt\LaravelConfigryptServiceProvider;
 
 echo "🚀 Understanding Auto-Decryption\n";
 echo "================================\n\n";
 
 // Get current auto-decryption status
 $currentStatus = $_ENV['CONFIGRYPT_AUTO_DECRYPT'] ?? config('configrypt.auto_decrypt', false);
-echo "Current auto-decryption status: " . ($currentStatus ? 'Enabled' : 'Disabled') . "\n\n";
+echo 'Current auto-decryption status: ' . ($currentStatus ? 'Enabled' : 'Disabled') . "\n\n";
 
 // Create test encrypted values
 $service = app(ConfigryptService::class);
@@ -81,7 +80,7 @@ echo "This means env() calls return cached (encrypted) values:\n\n";
 foreach (array_keys($testValues) as $key) {
     $rawValue = env($key);
     $isEncrypted = str_starts_with($rawValue, 'ENC:');
-    echo "env('{$key}'): " . ($isEncrypted ? 'ENC:...' : $rawValue) . 
+    echo "env('{$key}'): " . ($isEncrypted ? 'ENC:...' : $rawValue) .
          ($isEncrypted ? ' (still encrypted!)' : ' (plain text)') . "\n";
 }
 echo "\n";
@@ -109,16 +108,16 @@ echo "3. Updating \$_ENV, \$_SERVER, and putenv()\n";
 echo "4. Using reflection to clear Laravel's environment cache\n";
 echo "5. Making env() calls return decrypted values\n\n";
 
-if (!$currentStatus) {
+if (! $currentStatus) {
     echo "🔧 Simulating auto-decryption process...\n";
-    
+
     // Simulate the auto-decryption process
     $_ENV['CONFIGRYPT_AUTO_DECRYPT'] = 'true';
-    
+
     // Create a new service provider instance to trigger auto-decryption
     $provider = new LaravelConfigryptServiceProvider(app());
     $provider->register();
-    
+
     echo "✓ Auto-decryption triggered manually\n\n";
 } else {
     echo "✅ Auto-decryption is already enabled\n\n";
@@ -298,8 +297,8 @@ foreach ($_ENV as $key => $value) {
 
 echo "\nGet all decrypted environment variables:\n";
 $allDecrypted = $envDecryptor->getAllDecrypted();
-echo "Total environment variables: " . count($allDecrypted) . "\n";
-echo "Sample: " . array_key_first($allDecrypted) . " => " . substr($allDecrypted[array_key_first($allDecrypted)], 0, 20) . "...\n\n";
+echo 'Total environment variables: ' . count($allDecrypted) . "\n";
+echo 'Sample: ' . array_key_first($allDecrypted) . ' => ' . substr($allDecrypted[array_key_first($allDecrypted)], 0, 20) . "...\n\n";
 
 // Clean up test environment variables
 foreach (array_keys($testValues) as $key) {

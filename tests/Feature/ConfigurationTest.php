@@ -11,6 +11,18 @@ class ConfigurationTest extends TestCase
         return [LaravelConfigryptServiceProvider::class];
     }
 
+    #[Override]
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Clean up any environment variables that might affect tests
+        unset($_ENV['CONFIGRYPT_AUTO_DECRYPT']);
+        unset($_ENV['CONFIGRYPT_KEY']);
+        unset($_ENV['CONFIGRYPT_PREFIX']);
+        unset($_ENV['CONFIGRYPT_CIPHER']);
+    }
+
     public function test_default_configuration_values(): void
     {
         $this->assertSame('ENC:', config('configrypt.prefix'));
@@ -30,7 +42,7 @@ class ConfigurationTest extends TestCase
         $this->app['config']->set('configrypt.key', env('CONFIGRYPT_KEY'));
         $this->app['config']->set('configrypt.prefix', env('CONFIGRYPT_PREFIX', 'ENC:'));
         $this->app['config']->set('configrypt.cipher', env('CONFIGRYPT_CIPHER', 'AES-256-CBC'));
-        $this->app['config']->set('configrypt.auto_decrypt', env('CONFIGRYPT_AUTO_DECRYPT', true));
+        $this->app['config']->set('configrypt.auto_decrypt', env('CONFIGRYPT_AUTO_DECRYPT', false));
 
         $this->assertSame('custom-key-123456789012345678901', config('configrypt.key'));
         $this->assertSame('ENCRYPT:', config('configrypt.prefix'));

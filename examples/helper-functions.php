@@ -3,7 +3,7 @@
 /**
  * Example: Helper Functions and Str Macro
  *
- * This example demonstrates the helper functions and Str macro added by 
+ * This example demonstrates the helper functions and Str macro added by
  * Laravel Configrypt for easy migration and seamless integration.
  *
  * Features demonstrated:
@@ -22,11 +22,10 @@
  * - Laravel application context (for helpers and Str macro)
  * - CONFIGRYPT_KEY or APP_KEY environment variable set
  */
-
 echo "=== Laravel Configrypt Helper Functions & Str Macro Example ===\n\n";
 
 // Note: This example requires Laravel application context
-if (!function_exists('app') || !function_exists('configrypt_env')) {
+if (! function_exists('app') || ! function_exists('configrypt_env')) {
     echo "❌ This example requires Laravel application context.\n";
     echo "Please run this in Laravel artisan tinker:\n";
     echo "php artisan tinker\n";
@@ -111,13 +110,13 @@ echo "4. Comparison with env() function:\n";
 echo "----------------------------------\n";
 
 echo "Raw env() results:\n";
-echo "- Plain value: " . env('TEST_PLAIN_VALUE') . "\n";
-echo "- Encrypted value: " . env('TEST_ENCRYPTED_VALUE') . "\n";
+echo '- Plain value: ' . env('TEST_PLAIN_VALUE') . "\n";
+echo '- Encrypted value: ' . env('TEST_ENCRYPTED_VALUE') . "\n";
 echo "  ^ Note: This shows encrypted value unless auto-decrypt is enabled\n\n";
 
 echo "Helper function results:\n";
-echo "- Plain value: " . configrypt_env('TEST_PLAIN_VALUE') . "\n";
-echo "- Encrypted value: " . configrypt_env('TEST_ENCRYPTED_VALUE') . "\n";
+echo '- Plain value: ' . configrypt_env('TEST_PLAIN_VALUE') . "\n";
+echo '- Encrypted value: ' . configrypt_env('TEST_ENCRYPTED_VALUE') . "\n";
 echo "  ^ Note: This always returns decrypted value\n\n";
 
 // Test 5: Auto-decryption demonstration
@@ -125,7 +124,7 @@ echo "5. Auto-decryption demonstration:\n";
 echo "---------------------------------\n";
 
 $autoDecryptEnabled = $_ENV['CONFIGRYPT_AUTO_DECRYPT'] ?? config('configrypt.auto_decrypt', false);
-echo "Auto-decryption status: " . ($autoDecryptEnabled ? 'Enabled' : 'Disabled') . "\n";
+echo 'Auto-decryption status: ' . ($autoDecryptEnabled ? 'Enabled' : 'Disabled') . "\n";
 
 if ($autoDecryptEnabled) {
     echo "✅ With auto-decryption enabled:\n";
