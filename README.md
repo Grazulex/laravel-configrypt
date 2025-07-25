@@ -1,4 +1,4 @@
-# Laravel Configrypt
+# Laravel Confi🔏 Laravel Configrypt lets you **encrypt secrets directly in your `.env` file** using a secure key, and decrypt them using helper functions that work reliably with Laravel's environment caching.rypt
 
 <div align="center">
   <img src="new_logo.png" alt="Laravel Configrypt" width="100">
@@ -39,8 +39,19 @@ MAIL_PASSWORD=ENC:gk9AvRZgx6Jyds7K2uFctw==
 In your Laravel code:
 
 ```php
-config('mail.password'); // returns decrypted value
-env('MAIL_PASSWORD');    // returns decrypted value
+// Method 1: Use helper functions (recommended)
+configrypt_env('MAIL_PASSWORD');     // returns decrypted value
+encrypted_env('MAIL_PASSWORD');      // alias for configrypt_env()
+
+// Method 2: Use the facade
+use LaravelConfigrypt\Facades\ConfigryptEnv;
+ConfigryptEnv::get('MAIL_PASSWORD'); // returns decrypted value
+
+// Method 3: Manual decryption
+use LaravelConfigrypt\Facades\Configrypt;
+Configrypt::decrypt(env('MAIL_PASSWORD')); // manual decrypt
+
+// Note: env('MAIL_PASSWORD') returns encrypted value due to Laravel's cache
 ```
 
 ## ⚙️ Configuration
@@ -109,19 +120,74 @@ JWT_SECRET=ENC:MnOpQrStUvWxYzAbCdEfGhIjKl==
 
 ### 5. Use in your application
 
+**⚠️ Important: Laravel's `env()` function cannot be automatically decrypted due to early caching.**
+
 ```php
-// These will automatically return the decrypted values
-$dbPassword = env('DB_PASSWORD');
-$apiSecret = config('services.api.secret');
-$jwtSecret = config('jwt.secret');
+// ❌ This won't work - Laravel caches env() before our package loads
+$dbPassword = env('DB_PASSWORD'); // Returns "ENC:xyz..." (still encrypted)
+
+// ✅ Use our helper functions instead (recommended)
+$dbPassword = configrypt_env('DB_PASSWORD');  // Returns decrypted value
+$apiSecret = encrypted_env('API_SECRET');     // Alias for consistency
+
+// ✅ Or use the facade for more control
+$dbPassword = ConfigryptEnv::get('DB_PASSWORD');
+
+// ✅ Or use the new Str macro for easy migration
+$dbPassword = Str::decryptEnv('DB_PASSWORD');
+```
+
+## ⚠️ Important: Laravel env() Cache Limitation
+
+**Laravel caches environment variables very early in the boot process, before service providers load.** This means the standard `env()` function **cannot** be automatically decrypted.
+
+### 🔧 Migration Solutions
+
+**Option 1: Use Helper Functions (Recommended)**
+```php
+// ❌ This won't work - returns encrypted value
+$password = env('DB_PASSWORD'); // Still returns "ENC:xyz..."
+
+// ✅ These work - return decrypted values
+$password = configrypt_env('DB_PASSWORD');
+$password = encrypted_env('DB_PASSWORD');
+$password = ConfigryptEnv::get('DB_PASSWORD');
+```
+
+**Option 2: Use Str Macro (Easy Migration)**
+```php
+use Illuminate\Support\Str;
+
+// Easy to search and replace in your codebase
+$password = Str::decryptEnv('DB_PASSWORD');
+```
+
+**Option 3: Manual Decryption**
+```php
+use LaravelConfigrypt\Facades\Configrypt;
+
+$rawValue = env('DB_PASSWORD');
+$password = Configrypt::isEncrypted($rawValue) ? Configrypt::decrypt($rawValue) : $rawValue;
+```
+
+### 🚀 Quick Migration
+
+**Find and Replace in your codebase:**
+```bash
+# Replace env() calls with configrypt_env()
+find . -name "*.php" -exec sed -i 's/env(/configrypt_env(/g' {} \;
+
+# Or use Str::decryptEnv() for easier reversal
+find . -name "*.php" -exec sed -i 's/env(/Str::decryptEnv(/g' {} \;
 ```
 
 ## 🔧 Advanced Usage
 
-### Using the Facade
+### Using the Facades
 
 ```php
 use LaravelConfigrypt\Facades\Configrypt;
+use LaravelConfigrypt\Facades\ConfigryptEnv;
 
 // Encrypt a value
 $encrypted = Configrypt::encrypt('my-secret-value');
@@ -131,17 +197,25 @@ $decrypted = Configrypt::decrypt('ENC:encrypted-value');
 
 // Check if a value is encrypted
 $isEncrypted = Configrypt::isEncrypted('ENC:some-value');
+
+// Environment-specific methods
+$dbPassword = ConfigryptEnv::get('DB_PASSWORD');
+$allDecrypted = ConfigryptEnv::getAllDecrypted();
+ConfigryptEnv::decryptAll(); // Process all ENC: prefixed variables
 ```
 
 ### Dependency Injection
 
 ```php
 use LaravelConfigrypt\Services\ConfigryptService;
+use LaravelConfigrypt\Services\EnvironmentDecryptor;
 
 class MyController extends Controller
 {
-    public function __construct(private ConfigryptService $configrypt)
-    {
+    public function __construct(
+        private ConfigryptService $configrypt,
+        private EnvironmentDecryptor $envDecryptor
+    ) {
     }
 
     public function encryptValue(Request $request)
@@ -149,16 +223,13 @@ class MyController extends Controller
         $encrypted = $this->configrypt->encrypt($request->value);
         return response()->json(['encrypted' => $encrypted]);
     }
+
+    public function getDecryptedEnv(string $key)
+    {
+        return $this->envDecryptor->get($key);
+    }
 }
-
-## 🔄 Auto-Decryption Behavior
-
-When `auto_decrypt = true`, Laravel Configrypt will hook into the environment loading process, and decrypt all `ENC:` values transparently — no changes needed in your app code.
-
-Supports:
-
-- `env('KEY')`
-- `config('service.key')` (if backed by env)
+```
 
 ## 🧪 Practical Examples
 
@@ -170,10 +241,10 @@ DB_PASSWORD=ENC:W3+f/2ZzZfl9KQ==
 ```
 
 ```php
-// config/database.php - works seamlessly
+// config/database.php
 'mysql' => [
     'driver' => 'mysql',
-    'password' => env('DB_PASSWORD'), // Automatically decrypted
+    'password' => configrypt_env('DB_PASSWORD'), // Use helper function
 ],
 ```
 
@@ -189,7 +260,17 @@ AWS_SECRET_ACCESS_KEY=ENC:AbCdEf1234567890=
 ```php
 // config/services.php
 'stripe' => [
-    'secret' => env('STRIPE_SECRET'), // Auto-decrypted
+    'secret' => configrypt_env('STRIPE_SECRET'),
+],
+
+'mailgun' => [
+    'secret' => configrypt_env('MAILGUN_SECRET'),
+],
+
+// config/filesystems.php
+'s3' => [
+    'driver' => 's3',
+    'secret' => configrypt_env('AWS_SECRET_ACCESS_KEY'),
 ],
 ```
 
@@ -234,7 +315,7 @@ php artisan configrypt:encrypt "your-secret-value"
 echo "MY_SECRET=ENC:your-encrypted-value" >> .env
 
 # Use in your application
-$secret = env('MY_SECRET'); // Automatically decrypted!
+$secret = configrypt_env('MY_SECRET');
 ```
 
 ## 📚 Documentation

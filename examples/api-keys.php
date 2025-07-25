@@ -1,16 +1,17 @@
 <?php
+
 /**
  * Example: API Keys and Third-Party Service Management
- * 
+ *
  * This example demonstrates how to securely manage API keys, tokens, and
  * credentials for third-party services using Laravel Configrypt. It covers
  * various types of API authentication and integration patterns.
- * 
+ *
  * Usage:
  * - Run: php examples/api-keys.php
  * - Shows encrypted API key configurations
  * - Demonstrates service integration patterns
- * 
+ *
  * Requirements:
  * - Laravel Configrypt package
  * - CONFIGRYPT_KEY environment variable set
@@ -39,23 +40,23 @@ $apiCredentials = [
     'stripe_secret_key' => 'sk_live_51234567890abcdefghijklmnopqrstuvwxyz',
     'stripe_webhook_secret' => 'whsec_1234567890abcdefghijklmnopqrstuvwxyz',
     'paypal_client_secret' => 'paypal-client-secret-here',
-    
+
     // Email services
     'mailgun_api_key' => 'key-1234567890abcdef1234567890abcdef',
     'sendgrid_api_key' => 'SG.1234567890abcdef.1234567890abcdefghijklmnopqrstuvwxyz',
     'postmark_token' => '12345678-1234-1234-1234-123456789012',
-    
+
     // Cloud services
     'aws_secret_key' => 'AWS-SECRET-ACCESS-KEY-1234567890ABCDEF',
     'aws_session_token' => 'temporary-session-token-here',
     'google_client_secret' => 'google-oauth-client-secret-here',
     'azure_client_secret' => 'azure-ad-client-secret-here',
-    
+
     // Social media APIs
     'twitter_bearer_token' => 'twitter-bearer-token-here',
     'facebook_app_secret' => 'facebook-app-secret-here',
     'linkedin_client_secret' => 'linkedin-oauth-secret-here',
-    
+
     // Other services
     'slack_webhook_url' => 'https://hooks.slack.com/services/SECRET/PATH/HERE',
     'twilio_auth_token' => 'twilio-auth-token-here',
@@ -320,7 +321,7 @@ $environments = ['development', 'staging', 'production'];
 foreach ($environments as $env) {
     echo "\n{$env} environment:\n";
     echo str_repeat('-', strlen($env) + 15) . "\n";
-    
+
     // Different API keys for different environments
     $envKeys = [
         'development' => [
@@ -336,13 +337,13 @@ foreach ($environments as $env) {
             'sendgrid' => 'SG.production_key_here',
         ],
     ];
-    
+
     $stripeEncrypted = $service->encrypt($envKeys[$env]['stripe']);
     $sendgridEncrypted = $service->encrypt($envKeys[$env]['sendgrid']);
-    
+
     echo "STRIPE_SECRET={$stripeEncrypted}\n";
     echo "SENDGRID_API_KEY={$sendgridEncrypted}\n";
-    
+
     if ($env === 'production') {
         echo "# Production-specific security\n";
         echo "STRIPE_WEBHOOK_TOLERANCE=300\n";

@@ -15,7 +15,7 @@ class ConfigurationTest extends TestCase
     {
         $this->assertSame('ENC:', config('configrypt.prefix'));
         $this->assertSame('AES-256-CBC', config('configrypt.cipher'));
-        $this->assertTrue(config('configrypt.auto_decrypt'));
+        $this->assertFalse(config('configrypt.auto_decrypt')); // Changed to false as default
     }
 
     public function test_environment_configuration_override(): void

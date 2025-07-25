@@ -1,16 +1,17 @@
 <?php
+
 /**
  * Example: Working with Environment Variables
- * 
+ *
  * This example demonstrates how to encrypt values for use in .env files
  * and how Laravel Configrypt automatically handles decryption when
  * environment variables are accessed.
- * 
+ *
  * Usage:
  * - Run: php examples/environment-variables.php
  * - Creates example .env entries
  * - Shows how auto-decryption works
- * 
+ *
  * Requirements:
  * - Laravel Configrypt package
  * - CONFIGRYPT_KEY environment variable set
@@ -176,10 +177,11 @@ echo "6. Validation and troubleshooting:\n";
 echo "=================================\n";
 
 // Function to validate encrypted environment variables
-function validateEncryptedEnvVars($service, $envVars) {
+function validateEncryptedEnvVars($service, $envVars)
+{
     $results = [];
     $prefix = $service->getPrefix();
-    
+
     foreach ($envVars as $key => $value) {
         if (is_string($value) && str_starts_with($value, $prefix)) {
             try {
@@ -187,24 +189,24 @@ function validateEncryptedEnvVars($service, $envVars) {
                 $results[$key] = [
                     'status' => 'valid',
                     'decrypted_length' => strlen($decrypted),
-                    'error' => null
+                    'error' => null,
                 ];
             } catch (Exception $e) {
                 $results[$key] = [
                     'status' => 'invalid',
                     'decrypted_length' => 0,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ];
             }
         } else {
             $results[$key] = [
                 'status' => 'not_encrypted',
                 'decrypted_length' => strlen($value),
-                'error' => null
+                'error' => null,
             ];
         }
     }
-    
+
     return $results;
 }
 
@@ -223,7 +225,7 @@ $validation = validateEncryptedEnvVars($service, $testEnvVars);
 foreach ($validation as $key => $result) {
     $status = $result['status'];
     echo "{$key}: {$status}";
-    
+
     if ($status === 'valid') {
         echo " (length: {$result['decrypted_length']})";
     } elseif ($status === 'invalid') {
@@ -231,7 +233,7 @@ foreach ($validation as $key => $result) {
     } elseif ($status === 'not_encrypted') {
         echo " (plain text, length: {$result['decrypted_length']})";
     }
-    
+
     echo "\n";
 }
 

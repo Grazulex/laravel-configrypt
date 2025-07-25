@@ -45,10 +45,12 @@ return [
     |--------------------------------------------------------------------------
     |
     | When enabled, encrypted environment variables will be automatically
-    | decrypted during the application bootstrap process.
+    | decrypted during the application bootstrap process. However, due to
+    | Laravel's environment caching, env() will not return decrypted values.
+    | Use configrypt_env() helper function instead for reliable decryption.
     |
     */
 
-    'auto_decrypt' => env('CONFIGRYPT_AUTO_DECRYPT', true),
+    'auto_decrypt' => env('CONFIGRYPT_AUTO_DECRYPT', false),
 
 ];

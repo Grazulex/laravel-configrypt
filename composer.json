@@ -45,7 +45,10 @@
   "autoload": {
     "psr-4": {
       "LaravelConfigrypt\\": "src/"
-    }
+    },
+    "files": [
+      "src/helpers.php"
+    ]
   },
   "autoload-dev": {
     "psr-4": {

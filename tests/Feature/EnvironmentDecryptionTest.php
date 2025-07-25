@@ -17,10 +17,16 @@ class EnvironmentDecryptionTest extends TestCase
         $app['config']->set('configrypt.prefix', 'ENC:');
         $app['config']->set('configrypt.cipher', 'AES-256-CBC');
         $app['config']->set('configrypt.auto_decrypt', true);
+
+        // Don't set global auto-decrypt - let individual tests control it
+        $_ENV['CONFIGRYPT_KEY'] = 'test-key-1234567890123456789012';
     }
 
     public function test_auto_decrypt_environment_variables(): void
     {
+        // Enable auto-decryption for this test
+        $_ENV['CONFIGRYPT_AUTO_DECRYPT'] = 'true';
+
         // Encrypt a test value
         $service = new ConfigryptService('test-key-1234567890123456789012');
         $encrypted = $service->encrypt('secret-database-password');
@@ -34,12 +40,15 @@ class EnvironmentDecryptionTest extends TestCase
         $provider->register();
         $provider->boot();
 
-        // Check that the environment variable was decrypted
-        $this->assertSame('secret-database-password', env('TEST_ENCRYPTED_VAR'));
+        // Check that the environment variable was decrypted in both $_ENV and env()
         $this->assertSame('secret-database-password', $_ENV['TEST_ENCRYPTED_VAR']);
+
+        // Auto-decrypt clears the cache so env() also returns decrypted value
+        $this->assertSame('secret-database-password', env('TEST_ENCRYPTED_VAR'));
 
         // Clean up
         unset($_ENV['TEST_ENCRYPTED_VAR']);
+        unset($_ENV['CONFIGRYPT_AUTO_DECRYPT']);
         putenv('TEST_ENCRYPTED_VAR');
     }
 
@@ -87,7 +96,11 @@ class EnvironmentDecryptionTest extends TestCase
 
     public function test_auto_decrypt_with_custom_prefix(): void
     {
-        // Change the prefix
+        // Enable auto-decryption for this test
+        $_ENV['CONFIGRYPT_AUTO_DECRYPT'] = 'true';
+        $_ENV['CONFIGRYPT_PREFIX'] = 'CUSTOM:';
+
+        // Change the prefix in config as well
         config(['configrypt.prefix' => 'CUSTOM:']);
 
         $service = new ConfigryptService('test-key-1234567890123456789012', 'CUSTOM:');
@@ -101,17 +114,21 @@ class EnvironmentDecryptionTest extends TestCase
         $provider->register();
         $provider->boot();
 
-        // Should be decrypted
+        // Should be decrypted in both $_ENV and env() due to auto-decrypt clearing cache
+        $this->assertSame('custom-secret', $_ENV['TEST_CUSTOM_VAR']);
         $this->assertSame('custom-secret', env('TEST_CUSTOM_VAR'));
 
         // Clean up
         unset($_ENV['TEST_CUSTOM_VAR']);
+        unset($_ENV['CONFIGRYPT_AUTO_DECRYPT']);
+        unset($_ENV['CONFIGRYPT_PREFIX']);
         putenv('TEST_CUSTOM_VAR');
     }
 
     public function test_auto_decrypt_disabled(): void
     {
-        // Disable auto decrypt
+        // Explicitly disable auto-decrypt
+        $_ENV['CONFIGRYPT_AUTO_DECRYPT'] = 'false';
         config(['configrypt.auto_decrypt' => false]);
 
         $service = new ConfigryptService('test-key-1234567890123456789012');
@@ -125,12 +142,14 @@ class EnvironmentDecryptionTest extends TestCase
         $provider->register();
         $provider->boot();
 
-        // Should remain encrypted
+        // Should remain encrypted in both $_ENV and env()
+        $this->assertSame($encrypted, $_ENV['TEST_NO_DECRYPT_VAR']);
         $this->assertSame($encrypted, env('TEST_NO_DECRYPT_VAR'));
         $this->assertStringStartsWith('ENC:', env('TEST_NO_DECRYPT_VAR'));
 
         // Clean up
         unset($_ENV['TEST_NO_DECRYPT_VAR']);
+        unset($_ENV['CONFIGRYPT_AUTO_DECRYPT']);
         putenv('TEST_NO_DECRYPT_VAR');
     }
 }

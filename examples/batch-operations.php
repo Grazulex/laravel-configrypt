@@ -1,15 +1,16 @@
 <?php
+
 /**
  * Example: Batch Operations and Bulk Management
- * 
+ *
  * This example demonstrates how to perform batch encryption/decryption operations,
  * bulk environment file processing, and automated secret management with Laravel Configrypt.
- * 
+ *
  * Usage:
  * - Run: php examples/batch-operations.php
  * - Shows bulk encryption/decryption patterns
  * - Demonstrates automated environment file processing
- * 
+ *
  * Requirements:
  * - Laravel Configrypt package
  * - CONFIGRYPT_KEY environment variable set
@@ -38,7 +39,7 @@ $configurationValues = [
     'DB_PASSWORD' => 'primary-database-password',
     'DB_READONLY_PASSWORD' => 'readonly-database-password',
     'DB_ANALYTICS_PASSWORD' => 'analytics-database-password',
-    
+
     // API keys and secrets
     'STRIPE_SECRET_KEY' => 'sk_live_1234567890abcdefghijklmnopqrstuvwxyz',
     'STRIPE_WEBHOOK_SECRET' => 'whsec_1234567890abcdefghijklmnopqrstuvwxyz',
@@ -47,31 +48,32 @@ $configurationValues = [
     'SENDGRID_API_KEY' => 'SG.1234567890abcdef.1234567890abcdefghijklmnopqrstuvwxyz',
     'TWILIO_AUTH_TOKEN' => 'twilio-auth-token-here',
     'PUSHER_APP_SECRET' => 'pusher-app-secret-here',
-    
+
     // Cloud service credentials
     'AWS_SECRET_ACCESS_KEY' => 'AWS-SECRET-ACCESS-KEY-1234567890ABCDEF',
     'GOOGLE_CLIENT_SECRET' => 'google-oauth-client-secret-here',
     'AZURE_CLIENT_SECRET' => 'azure-ad-client-secret-here',
-    
+
     // Application secrets
     'JWT_SECRET' => 'your-jwt-signing-secret-key-here',
     'SESSION_ENCRYPT_KEY' => 'session-encryption-key-here',
     'WEBHOOK_SECRET' => 'webhook-validation-secret-here',
-    
+
     // Third-party integrations
     'SLACK_WEBHOOK_URL' => 'https://hooks.slack.com/services/SECRET/PATH/HERE',
     'DISCORD_WEBHOOK_URL' => 'https://discord.com/api/webhooks/SECRET/PATH',
     'ALGOLIA_ADMIN_KEY' => 'algolia-admin-api-key-here',
 ];
 
-echo "Processing " . count($configurationValues) . " configuration values...\n\n";
+echo 'Processing ' . count($configurationValues) . " configuration values...\n\n";
 
 // Batch encryption function
-function batchEncrypt($service, $values) {
+function batchEncrypt($service, $values)
+{
     $encrypted = [];
     $errors = [];
     $startTime = microtime(true);
-    
+
     foreach ($values as $key => $value) {
         try {
             $encrypted[$key] = $service->encrypt($value);
@@ -81,16 +83,16 @@ function batchEncrypt($service, $values) {
             echo "✗ Failed to encrypt {$key}: " . $e->getMessage() . "\n";
         }
     }
-    
+
     $duration = microtime(true) - $startTime;
-    
+
     return [
         'encrypted' => $encrypted,
         'errors' => $errors,
         'duration' => $duration,
         'processed' => count($values),
         'successful' => count($encrypted),
-        'failed' => count($errors)
+        'failed' => count($errors),
     ];
 }
 
@@ -100,29 +102,30 @@ echo "\nBatch encryption completed:\n";
 echo "- Processed: {$encryptionResult['processed']} values\n";
 echo "- Successful: {$encryptionResult['successful']} values\n";
 echo "- Failed: {$encryptionResult['failed']} values\n";
-echo "- Duration: " . round($encryptionResult['duration'] * 1000, 2) . "ms\n";
-echo "- Average per value: " . round(($encryptionResult['duration'] / $encryptionResult['processed']) * 1000, 2) . "ms\n\n";
+echo '- Duration: ' . round($encryptionResult['duration'] * 1000, 2) . "ms\n";
+echo '- Average per value: ' . round(($encryptionResult['duration'] / $encryptionResult['processed']) * 1000, 2) . "ms\n\n";
 
 echo "2. Generating Environment File from Encrypted Values:\n";
 echo "====================================================\n";
 
-function generateEnvironmentFile($encryptedValues, $template = []) {
+function generateEnvironmentFile($encryptedValues, $template = [])
+{
     $envContent = [];
-    
+
     // Add header
-    $envContent[] = "# Laravel Application Configuration";
-    $envContent[] = "# Generated on " . date('Y-m-d H:i:s');
-    $envContent[] = "";
-    
+    $envContent[] = '# Laravel Application Configuration';
+    $envContent[] = '# Generated on ' . date('Y-m-d H:i:s');
+    $envContent[] = '';
+
     // Add template values
     foreach ($template as $section => $values) {
         $envContent[] = "# {$section}";
         foreach ($values as $key => $value) {
             $envContent[] = "{$key}={$value}";
         }
-        $envContent[] = "";
+        $envContent[] = '';
     }
-    
+
     // Add encrypted values in categories
     $categories = [
         'Database Configuration' => ['DB_'],
@@ -131,10 +134,10 @@ function generateEnvironmentFile($encryptedValues, $template = []) {
         'Application Secrets' => ['JWT_', 'SESSION_', 'WEBHOOK_'],
         'Third-party Integrations' => ['SLACK_', 'DISCORD_', 'ALGOLIA_'],
     ];
-    
+
     foreach ($categories as $category => $prefixes) {
         $categoryValues = [];
-        
+
         foreach ($encryptedValues as $key => $value) {
             foreach ($prefixes as $prefix) {
                 if (str_starts_with($key, $prefix)) {
@@ -143,16 +146,16 @@ function generateEnvironmentFile($encryptedValues, $template = []) {
                 }
             }
         }
-        
-        if (!empty($categoryValues)) {
+
+        if (! empty($categoryValues)) {
             $envContent[] = "# {$category}";
             foreach ($categoryValues as $key => $value) {
                 $envContent[] = "{$key}={$value}";
             }
-            $envContent[] = "";
+            $envContent[] = '';
         }
     }
-    
+
     return implode("\n", $envContent);
 }
 
@@ -189,10 +192,11 @@ echo str_repeat('=', 50) . "\n\n";
 echo "3. Batch Validation of Encrypted Values:\n";
 echo "=======================================\n";
 
-function batchValidate($service, $encryptedValues) {
+function batchValidate($service, $encryptedValues)
+{
     $results = [];
     $startTime = microtime(true);
-    
+
     foreach ($encryptedValues as $key => $encryptedValue) {
         try {
             $decrypted = $service->decrypt($encryptedValue);
@@ -200,25 +204,25 @@ function batchValidate($service, $encryptedValues) {
                 'status' => 'valid',
                 'length' => strlen($decrypted),
                 'preview' => substr($decrypted, 0, 10) . '...',
-                'is_encrypted' => $service->isEncrypted($encryptedValue)
+                'is_encrypted' => $service->isEncrypted($encryptedValue),
             ];
         } catch (Exception $e) {
             $results[$key] = [
                 'status' => 'invalid',
                 'error' => $e->getMessage(),
-                'is_encrypted' => $service->isEncrypted($encryptedValue)
+                'is_encrypted' => $service->isEncrypted($encryptedValue),
             ];
         }
     }
-    
+
     $duration = microtime(true) - $startTime;
-    
+
     return [
         'results' => $results,
         'duration' => $duration,
         'total' => count($encryptedValues),
-        'valid' => count(array_filter($results, fn($r) => $r['status'] === 'valid')),
-        'invalid' => count(array_filter($results, fn($r) => $r['status'] === 'invalid'))
+        'valid' => count(array_filter($results, fn ($r) => $r['status'] === 'valid')),
+        'invalid' => count(array_filter($results, fn ($r) => $r['status'] === 'invalid')),
     ];
 }
 
@@ -228,7 +232,7 @@ echo "Validation results:\n";
 foreach ($validationResult['results'] as $key => $result) {
     $status = $result['status'];
     echo "{$key}: {$status}";
-    
+
     if ($status === 'valid') {
         echo " (length: {$result['length']}, preview: {$result['preview']})";
     } else {
@@ -241,13 +245,13 @@ echo "\nValidation summary:\n";
 echo "- Total: {$validationResult['total']} values\n";
 echo "- Valid: {$validationResult['valid']} values\n";
 echo "- Invalid: {$validationResult['invalid']} values\n";
-echo "- Duration: " . round($validationResult['duration'] * 1000, 2) . "ms\n\n";
+echo '- Duration: ' . round($validationResult['duration'] * 1000, 2) . "ms\n\n";
 
 echo "4. Environment File Migration (Plain to Encrypted):\n";
 echo "==================================================\n";
 
 // Simulate an existing .env file with plain text secrets
-$existingEnvContent = <<<ENV
+$existingEnvContent = <<<'ENV'
 # Existing .env file with plain text secrets
 APP_NAME="My Laravel App"
 APP_ENV=production
@@ -275,7 +279,8 @@ echo str_repeat('-', 30) . "\n";
 echo $existingEnvContent . "\n";
 echo str_repeat('-', 30) . "\n\n";
 
-function migrateEnvironmentFile($content, $service, $secretPatterns = []) {
+function migrateEnvironmentFile($content, $service, $secretPatterns = [])
+{
     if (empty($secretPatterns)) {
         $secretPatterns = [
             '/.*PASSWORD.*/',
@@ -285,26 +290,27 @@ function migrateEnvironmentFile($content, $service, $secretPatterns = []) {
             '/.*CREDENTIAL.*/',
         ];
     }
-    
+
     $lines = explode("\n", $content);
     $migratedLines = [];
     $encrypted = [];
-    
+
     foreach ($lines as $line) {
         $trimmedLine = trim($line);
-        
+
         // Skip comments and empty lines
         if (empty($trimmedLine) || str_starts_with($trimmedLine, '#')) {
             $migratedLines[] = $line;
+
             continue;
         }
-        
+
         // Check if it's an environment variable
         if (str_contains($line, '=')) {
             [$key, $value] = explode('=', $line, 2);
             $key = trim($key);
             $value = trim($value, '"\'');
-            
+
             // Check if this key should be encrypted
             $shouldEncrypt = false;
             foreach ($secretPatterns as $pattern) {
@@ -313,8 +319,8 @@ function migrateEnvironmentFile($content, $service, $secretPatterns = []) {
                     break;
                 }
             }
-            
-            if ($shouldEncrypt && !$service->isEncrypted($value)) {
+
+            if ($shouldEncrypt && ! $service->isEncrypted($value)) {
                 $encryptedValue = $service->encrypt($value);
                 $migratedLines[] = "{$key}={$encryptedValue}";
                 $encrypted[] = $key;
@@ -325,10 +331,10 @@ function migrateEnvironmentFile($content, $service, $secretPatterns = []) {
             $migratedLines[] = $line;
         }
     }
-    
+
     return [
         'content' => implode("\n", $migratedLines),
-        'encrypted_keys' => $encrypted
+        'encrypted_keys' => $encrypted,
     ];
 }
 
@@ -340,7 +346,7 @@ echo $migrationResult['content'] . "\n";
 echo str_repeat('-', 30) . "\n\n";
 
 echo "Migration summary:\n";
-echo "- Encrypted keys: " . implode(', ', $migrationResult['encrypted_keys']) . "\n\n";
+echo '- Encrypted keys: ' . implode(', ', $migrationResult['encrypted_keys']) . "\n\n";
 
 echo "5. Bulk Key Rotation:\n";
 echo "====================\n";
@@ -352,19 +358,20 @@ $newKey = 'new-key-32-characters-long-----';
 $oldService = new ConfigryptService($oldKey, 'ENC:', 'AES-256-CBC');
 $newService = new ConfigryptService($newKey, 'ENC:', 'AES-256-CBC');
 
-function rotateKeys($oldService, $newService, $encryptedValues) {
+function rotateKeys($oldService, $newService, $encryptedValues)
+{
     $rotated = [];
     $errors = [];
     $startTime = microtime(true);
-    
+
     foreach ($encryptedValues as $key => $oldEncryptedValue) {
         try {
             // Decrypt with old key
             $plainText = $oldService->decrypt($oldEncryptedValue);
-            
+
             // Encrypt with new key
             $newEncryptedValue = $newService->encrypt($plainText);
-            
+
             $rotated[$key] = $newEncryptedValue;
             echo "✓ Rotated {$key}\n";
         } catch (Exception $e) {
@@ -372,16 +379,16 @@ function rotateKeys($oldService, $newService, $encryptedValues) {
             echo "✗ Failed to rotate {$key}: " . $e->getMessage() . "\n";
         }
     }
-    
+
     $duration = microtime(true) - $startTime;
-    
+
     return [
         'rotated' => $rotated,
         'errors' => $errors,
         'duration' => $duration,
         'total' => count($encryptedValues),
         'successful' => count($rotated),
-        'failed' => count($errors)
+        'failed' => count($errors),
     ];
 }
 
@@ -392,14 +399,14 @@ $testValues = [
     'JWT_SECRET' => $oldService->encrypt('test-jwt-secret'),
 ];
 
-echo "Rotating keys for " . count($testValues) . " values...\n";
+echo 'Rotating keys for ' . count($testValues) . " values...\n";
 $rotationResult = rotateKeys($oldService, $newService, $testValues);
 
 echo "\nKey rotation summary:\n";
 echo "- Total: {$rotationResult['total']} values\n";
 echo "- Successful: {$rotationResult['successful']} values\n";
 echo "- Failed: {$rotationResult['failed']} values\n";
-echo "- Duration: " . round($rotationResult['duration'] * 1000, 2) . "ms\n\n";
+echo '- Duration: ' . round($rotationResult['duration'] * 1000, 2) . "ms\n\n";
 
 // Verify rotation worked
 echo "Verifying rotation:\n";
@@ -415,9 +422,10 @@ foreach ($rotationResult['rotated'] as $key => $newEncryptedValue) {
 echo "\n6. Performance Analysis:\n";
 echo "=======================\n";
 
-function performanceTest($service, $iterations = 100) {
+function performanceTest($service, $iterations = 100)
+{
     $testValue = 'performance-test-value-' . str_repeat('x', 50);
-    
+
     // Encryption performance
     $encryptStart = microtime(true);
     $encrypted = [];
@@ -425,7 +433,7 @@ function performanceTest($service, $iterations = 100) {
         $encrypted[] = $service->encrypt($testValue . $i);
     }
     $encryptDuration = microtime(true) - $encryptStart;
-    
+
     // Decryption performance
     $decryptStart = microtime(true);
     $decrypted = [];
@@ -433,26 +441,26 @@ function performanceTest($service, $iterations = 100) {
         $decrypted[] = $service->decrypt($encValue);
     }
     $decryptDuration = microtime(true) - $decryptStart;
-    
+
     return [
         'iterations' => $iterations,
         'encrypt_total' => $encryptDuration,
         'encrypt_avg' => $encryptDuration / $iterations,
         'decrypt_total' => $decryptDuration,
         'decrypt_avg' => $decryptDuration / $iterations,
-        'total_time' => $encryptDuration + $decryptDuration
+        'total_time' => $encryptDuration + $decryptDuration,
     ];
 }
 
 $perfResult = performanceTest($service, 100);
 
 echo "Performance test results (100 iterations):\n";
-echo "- Encryption total: " . round($perfResult['encrypt_total'] * 1000, 2) . "ms\n";
-echo "- Encryption average: " . round($perfResult['encrypt_avg'] * 1000, 4) . "ms per operation\n";
-echo "- Decryption total: " . round($perfResult['decrypt_total'] * 1000, 2) . "ms\n";
-echo "- Decryption average: " . round($perfResult['decrypt_avg'] * 1000, 4) . "ms per operation\n";
-echo "- Total time: " . round($perfResult['total_time'] * 1000, 2) . "ms\n";
-echo "- Operations per second: " . round($perfResult['iterations'] / $perfResult['total_time']) . "\n\n";
+echo '- Encryption total: ' . round($perfResult['encrypt_total'] * 1000, 2) . "ms\n";
+echo '- Encryption average: ' . round($perfResult['encrypt_avg'] * 1000, 4) . "ms per operation\n";
+echo '- Decryption total: ' . round($perfResult['decrypt_total'] * 1000, 2) . "ms\n";
+echo '- Decryption average: ' . round($perfResult['decrypt_avg'] * 1000, 4) . "ms per operation\n";
+echo '- Total time: ' . round($perfResult['total_time'] * 1000, 2) . "ms\n";
+echo '- Operations per second: ' . round($perfResult['iterations'] / $perfResult['total_time']) . "\n\n";
 
 echo "7. Automation Scripts:\n";
 echo "=====================\n";

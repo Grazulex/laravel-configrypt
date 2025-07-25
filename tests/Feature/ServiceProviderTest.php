@@ -17,6 +17,9 @@ class ServiceProviderTest extends TestCase
         $app['config']->set('configrypt.prefix', 'ENC:');
         $app['config']->set('configrypt.cipher', 'AES-256-CBC');
         $app['config']->set('configrypt.auto_decrypt', true);
+
+        // Don't set global auto-decrypt - let individual tests control it
+        $_ENV['CONFIGRYPT_KEY'] = 'test-key-1234567890123456789012';
     }
 
     public function test_service_provider_registers_service(): void

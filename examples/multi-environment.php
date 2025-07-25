@@ -1,16 +1,17 @@
 <?php
+
 /**
  * Example: Multi-Environment Configuration Management
- * 
+ *
  * This example demonstrates how to manage different encryption configurations
  * for different environments (development, staging, production) with Laravel Configrypt.
  * Shows best practices for environment separation and key management.
- * 
+ *
  * Usage:
  * - Run: php examples/multi-environment.php
  * - Shows environment-specific configurations
  * - Demonstrates key rotation between environments
- * 
+ *
  * Requirements:
  * - Laravel Configrypt package
  * - Different encryption keys per environment
@@ -37,7 +38,7 @@ $environmentKeys = [
 $secrets = [
     'database_password' => [
         'development' => 'dev-db-password',
-        'staging' => 'staging-db-password', 
+        'staging' => 'staging-db-password',
         'production' => 'super-secure-prod-db-password',
         'testing' => 'test-db-password',
     ],
@@ -68,20 +69,20 @@ $encryptedSecrets = [];
 foreach ($environmentKeys as $environment => $key) {
     echo "Environment: {$environment}\n";
     echo str_repeat('-', strlen($environment) + 13) . "\n";
-    
+
     $service = new ConfigryptService(
         key: $key,
         prefix: 'ENC:',
         cipher: 'AES-256-CBC'
     );
-    
+
     $encryptedSecrets[$environment] = [];
-    
+
     foreach ($secrets as $secretType => $environmentSecrets) {
         $secretValue = $environmentSecrets[$environment];
         $encrypted = $service->encrypt($secretValue);
         $encryptedSecrets[$environment][$secretType] = $encrypted;
-        
+
         $varName = strtoupper($secretType);
         echo "{$varName}={$encrypted}\n";
     }
@@ -94,26 +95,26 @@ echo "=================================\n";
 foreach ($environmentKeys as $environment => $key) {
     echo ".env.{$environment}:\n";
     echo str_repeat('-', strlen($environment) + 5) . "\n";
-    
+
     echo "# Environment: {$environment}\n";
     echo "APP_ENV={$environment}\n";
-    echo "APP_DEBUG=" . ($environment === 'production' ? 'false' : 'true') . "\n";
+    echo 'APP_DEBUG=' . ($environment === 'production' ? 'false' : 'true') . "\n";
     echo "CONFIGRYPT_KEY={$key}\n";
     echo "CONFIGRYPT_PREFIX=ENC:\n";
     echo "CONFIGRYPT_AUTO_DECRYPT=true\n\n";
-    
+
     echo "# Database configuration\n";
     echo "DB_CONNECTION=mysql\n";
-    echo "DB_HOST=" . ($environment === 'production' ? 'prod-mysql.example.com' : 'dev-mysql.example.com') . "\n";
+    echo 'DB_HOST=' . ($environment === 'production' ? 'prod-mysql.example.com' : 'dev-mysql.example.com') . "\n";
     echo "DB_PORT=3306\n";
     echo "DB_DATABASE=laravel_{$environment}\n";
     echo "DB_USERNAME=laravel_{$environment}_user\n";
     echo "DATABASE_PASSWORD={$encryptedSecrets[$environment]['database_password']}\n\n";
-    
+
     echo "# API configuration\n";
     echo "API_KEY={$encryptedSecrets[$environment]['api_key']}\n";
     echo "JWT_SECRET={$encryptedSecrets[$environment]['jwt_secret']}\n\n";
-    
+
     if ($environment === 'production') {
         echo "# Production-specific settings\n";
         echo "LOG_LEVEL=error\n";
@@ -132,45 +133,46 @@ foreach ($environmentKeys as $environment => $key) {
         echo "SESSION_DRIVER=array\n";
         echo "QUEUE_CONNECTION=sync\n";
     }
-    
+
     echo "\n" . str_repeat('=', 50) . "\n\n";
 }
 
 echo "4. Environment Switching and Validation:\n";
 echo "=======================================\n";
 
-function validateEnvironmentConfiguration($environment, $key, $encryptedSecrets) {
+function validateEnvironmentConfiguration($environment, $key, $encryptedSecrets)
+{
     echo "Validating {$environment} environment:\n";
-    
+
     try {
         $service = new ConfigryptService(
             key: $key,
             prefix: 'ENC:',
             cipher: 'AES-256-CBC'
         );
-        
+
         $results = [];
-        
+
         foreach ($encryptedSecrets as $secretType => $encryptedValue) {
             try {
                 $decrypted = $service->decrypt($encryptedValue);
                 $results[$secretType] = [
                     'status' => 'success',
                     'length' => strlen($decrypted),
-                    'preview' => substr($decrypted, 0, 10) . '...'
+                    'preview' => substr($decrypted, 0, 10) . '...',
                 ];
             } catch (Exception $e) {
                 $results[$secretType] = [
                     'status' => 'failed',
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ];
             }
         }
-        
+
         foreach ($results as $secretType => $result) {
             $status = $result['status'];
             echo "  {$secretType}: {$status}";
-            
+
             if ($status === 'success') {
                 echo " (length: {$result['length']}, preview: {$result['preview']})";
             } else {
@@ -178,12 +180,13 @@ function validateEnvironmentConfiguration($environment, $key, $encryptedSecrets)
             }
             echo "\n";
         }
-        
+
         echo "  ✓ Environment configuration valid\n\n";
+
         return true;
-        
     } catch (Exception $e) {
-        echo "  ✗ Environment configuration failed: " . $e->getMessage() . "\n\n";
+        echo '  ✗ Environment configuration failed: ' . $e->getMessage() . "\n\n";
+
         return false;
     }
 }
@@ -225,7 +228,7 @@ echo "Production encrypted: {$productionSecret}\n\n";
 echo "Step 3: Verify with production key\n";
 $verifiedSecret = $productionService->decrypt($productionSecret);
 echo "Verified decryption: {$verifiedSecret}\n";
-echo "Rotation successful: " . ($decryptedSecret === $verifiedSecret ? 'Yes' : 'No') . "\n\n";
+echo 'Rotation successful: ' . ($decryptedSecret === $verifiedSecret ? 'Yes' : 'No') . "\n\n";
 
 echo "6. Environment Deployment Strategies:\n";
 echo "====================================\n";

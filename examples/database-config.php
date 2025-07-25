@@ -1,16 +1,17 @@
 <?php
+
 /**
  * Example: Database Configuration with Encrypted Credentials
- * 
+ *
  * This example demonstrates how to encrypt database credentials and use them
  * in Laravel's database configuration. It covers multiple database connections,
  * different database types, and best practices for database security.
- * 
+ *
  * Usage:
  * - Run: php examples/database-config.php
  * - Shows encrypted database configurations
  * - Demonstrates multiple connection setups
- * 
+ *
  * Requirements:
  * - Laravel Configrypt package
  * - CONFIGRYPT_KEY environment variable set
@@ -231,21 +232,21 @@ $environments = ['development', 'staging', 'production'];
 foreach ($environments as $env) {
     echo "\n{$env} environment (.env.{$env}):\n";
     echo str_repeat('-', strlen($env) + 25) . "\n";
-    
+
     // Different passwords for each environment
     $envPasswords = [
         'development' => 'dev-db-password-' . $env,
         'staging' => 'staging-db-password-' . $env,
         'production' => 'prod-db-password-' . $env,
     ];
-    
+
     $envEncrypted = $service->encrypt($envPasswords[$env]);
-    
+
     echo "DB_HOST={$env}-mysql.example.com\n";
     echo "DB_DATABASE=laravel_{$env}\n";
     echo "DB_USERNAME=laravel_{$env}_user\n";
     echo "DB_PASSWORD={$envEncrypted}\n";
-    
+
     if ($env === 'production') {
         echo "# Additional production security\n";
         echo "DB_SSL_MODE=REQUIRED\n";
@@ -281,20 +282,22 @@ echo "=====================\n";
 echo "Testing database connections with encrypted credentials...\n\n";
 
 // Mock connection test function
-function testDatabaseConnection($connectionName, $host, $username, $encryptedPassword, $service) {
+function testDatabaseConnection($connectionName, $host, $username, $encryptedPassword, $service)
+{
     try {
         $decryptedPassword = $service->decrypt($encryptedPassword);
-        
+
         // In a real application, this would attempt actual database connection
         echo "✓ {$connectionName}: Connection test successful\n";
         echo "  Host: {$host}\n";
         echo "  Username: {$username}\n";
-        echo "  Password: " . str_repeat('*', strlen($decryptedPassword)) . " (decrypted successfully)\n\n";
-        
+        echo '  Password: ' . str_repeat('*', strlen($decryptedPassword)) . " (decrypted successfully)\n\n";
+
         return true;
     } catch (Exception $e) {
         echo "✗ {$connectionName}: Connection test failed\n";
-        echo "  Error: " . $e->getMessage() . "\n\n";
+        echo '  Error: ' . $e->getMessage() . "\n\n";
+
         return false;
     }
 }
