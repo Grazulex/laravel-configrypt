@@ -6,15 +6,17 @@ This guide covers advanced usage patterns and features of Laravel Configrypt for
 
 ### Dependency Injection
 
-You can inject the `ConfigryptService` into any class that's resolved through Laravel's service container:
+You can inject both `ConfigryptService` and `EnvironmentDecryptor` into any class that's resolved through Laravel's service container:
 
 ```php
 use LaravelConfigrypt\Services\ConfigryptService;
+use LaravelConfigrypt\Support\EnvironmentDecryptor;
 
 class EncryptionController extends Controller
 {
     public function __construct(
-        private ConfigryptService $configrypt
+        private ConfigryptService $configrypt,
+        private EnvironmentDecryptor $envDecryptor
     ) {}
 
     public function encrypt(Request $request)
@@ -26,49 +28,216 @@ class EncryptionController extends Controller
             'prefix' => $this->configrypt->getPrefix()
         ]);
     }
+    
+    public function getEnvironmentValue(string $key)
+    {
+        // Use EnvironmentDecryptor for environment-specific operations
+        $value = $this->envDecryptor->get($key);
+        
+        return response()->json(['value' => $value]);
+    }
 }
 ```
 
 ### Service Resolution
 
-Resolve the service manually when needed:
+Resolve services manually when needed:
 
 ```php
+// Main encryption service
 $configrypt = app(ConfigryptService::class);
 $encrypted = $configrypt->encrypt('secret-value');
+
+// Environment decryption service
+$envDecryptor = app(EnvironmentDecryptor::class);
+$dbPassword = $envDecryptor->get('DB_PASSWORD');
+
+// Using aliases
+$configrypt = app('configrypt');
+$envDecryptor = app('configrypt.env');
+```
+
+## Multiple Access Patterns
+
+### Pattern 1: Auto-Decryption (Recommended for Most Use Cases)
+
+Enable auto-decryption for seamless integration:
+
+```php
+// .env file
+CONFIGRYPT_AUTO_DECRYPT=true
+DB_PASSWORD=ENC:encrypted-password
+
+// Your existing code works normally
+class DatabaseManager
+{
+    public function connect()
+    {
+        $config = [
+            'host' => env('DB_HOST'),
+            'password' => env('DB_PASSWORD'), // Returns decrypted value automatically
+            'username' => env('DB_USERNAME'),
+        ];
+        
+        return new PDO($this->buildDsn($config), $config['username'], $config['password']);
+    }
+}
+```
+
+### Pattern 2: Explicit Helpers (Recommended for New Code)
+
+Use helper functions for explicit control:
+
+```php
+class ApiKeyManager
+{
+    public function getStripeSecret(): string
+    {
+        // Primary helper function
+        return configrypt_env('STRIPE_SECRET', 'default-key');
+    }
+    
+    public function getMailgunKey(): string
+    {
+        // Alias helper function
+        return encrypted_env('MAILGUN_SECRET');
+    }
+    
+    public function getJwtSecret(): string
+    {
+        // Str macro for easy migration
+        return Str::decryptEnv('JWT_SECRET');
+    }
+}
+```
+
+### Pattern 3: Facade Usage
+
+Use facades for more advanced operations:
+
+```php
+use LaravelConfigrypt\Facades\Configrypt;
+use LaravelConfigrypt\Facades\ConfigryptEnv;
+
+class ConfigurationService
+{
+    public function encryptSensitiveConfig(array $config): array
+    {
+        foreach ($config as $key => $value) {
+            if ($this->isSensitive($key)) {
+                $config[$key] = Configrypt::encrypt($value);
+            }
+        }
+        
+        return $config;
+    }
+    
+    public function getAllDecryptedEnvVars(): array
+    {
+        // Get all environment variables with encrypted values decrypted
+        return ConfigryptEnv::getAllDecrypted();
+    }
+    
+    public function forceDecryptAll(): void
+    {
+        // Manually decrypt all ENC: prefixed environment variables
+        ConfigryptEnv::decryptAll();
+    }
+}
+```
+
+## Advanced Auto-Decryption Features
+
+### Understanding the Auto-Decryption Process
+
+Laravel Configrypt uses an innovative approach to bypass Laravel's environment caching:
+
+```php
+// How auto-decryption works internally:
+
+// 1. Early execution during service provider registration
+public function register(): void
+{
+    if ($_ENV['CONFIGRYPT_AUTO_DECRYPT'] === 'true') {
+        $this->earlyAutoDecryptEnvironmentVariables();
+    }
+    // ... rest of registration
+}
+
+// 2. Decrypts all ENC: prefixed variables
+private function earlyAutoDecryptEnvironmentVariables(): void
+{
+    foreach ($_ENV as $key => $value) {
+        if (str_starts_with($value, 'ENC:')) {
+            $decrypted = $this->decrypt($value);
+            
+            // Update all possible sources
+            $_ENV[$key] = $decrypted;
+            $_SERVER[$key] = $decrypted;
+            putenv("{$key}={$decrypted}");
+            
+            // Clear Laravel's environment cache
+            $this->clearLaravelEnvironmentCache($key);
+        }
+    }
+}
+```
+
+### Custom Auto-Decryption Configuration
+
+```php
+class CustomAutoDecryption
+{
+    public function configureConditionalAutoDecryption(): void
+    {
+        // Only enable auto-decryption in specific environments
+        $autoDecrypt = in_array(app()->environment(), ['local', 'staging', 'production']);
+        
+        config(['configrypt.auto_decrypt' => $autoDecrypt]);
+        
+        if ($autoDecrypt) {
+            // Force auto-decryption even if not enabled in env
+            $this->triggerAutoDecryption();
+        }
+    }
+    
+    private function triggerAutoDecryption(): void
+    {
+        $envDecryptor = app(EnvironmentDecryptor::class);
+        $envDecryptor->decryptAll();
+    }
+}
 ```
 
 ## Facade Usage Patterns
 
-### Basic Facade Methods
+### Enhanced Facade Methods
 
 ```php
 use LaravelConfigrypt\Facades\Configrypt;
+use LaravelConfigrypt\Facades\ConfigryptEnv;
 
-// Encrypt a value
+// Basic encryption operations
 $encrypted = Configrypt::encrypt('my-secret');
-
-// Decrypt a value  
 $decrypted = Configrypt::decrypt('ENC:encrypted-value');
-
-// Check if a value is encrypted
 $isEncrypted = Configrypt::isEncrypted('ENC:some-value');
-
-// Get the current prefix
 $prefix = Configrypt::getPrefix();
 
-// Get the encryption key (use carefully)
-$key = Configrypt::getKey();
+// Environment-specific operations
+$dbPassword = ConfigryptEnv::get('DB_PASSWORD');
+$allDecrypted = ConfigryptEnv::getAllDecrypted();
+ConfigryptEnv::decryptAll(); // Decrypt all ENC: prefixed variables
+$isEncryptedEnv = ConfigryptEnv::isEncrypted($_ENV['SOME_VAR']);
 ```
 
-### Conditional Encryption
+### Conditional Encryption and Smart Helpers
 
 ```php
 use LaravelConfigrypt\Facades\Configrypt;
 
-class ConfigHelper
+class SmartConfigHelper
 {
-    public static function secureValue(string $value): string
+    public static function smartEncrypt(string $value): string
     {
         // Only encrypt if not already encrypted
         if (Configrypt::isEncrypted($value)) {
@@ -78,16 +247,49 @@ class ConfigHelper
         return Configrypt::encrypt($value);
     }
     
-    public static function getValue(string $key): string
+    public static function smartDecrypt(string $value, ?string $default = null): ?string
     {
-        $value = env($key);
-        
-        // Handle both encrypted and plain values
+        // Handle both encrypted and plain values gracefully
         if (Configrypt::isEncrypted($value)) {
-            return Configrypt::decrypt($value);
+            try {
+                return Configrypt::decrypt($value);
+            } catch (Exception $e) {
+                return $default;
+            }
         }
         
         return $value;
+    }
+    
+    public static function getValueSafely(string $key, ?string $default = null): ?string
+    {
+        // Try multiple approaches for maximum compatibility
+        
+        // 1. Try helper function first (recommended)
+        try {
+            return configrypt_env($key, $default);
+        } catch (Exception $e) {
+            // Continue to next approach
+        }
+        
+        // 2. Try environment decryptor facade
+        try {
+            return ConfigryptEnv::get($key, $default);
+        } catch (Exception $e) {
+            // Continue to next approach
+        }
+        
+        // 3. Try manual approach
+        $value = env($key);
+        if (Configrypt::isEncrypted($value)) {
+            try {
+                return Configrypt::decrypt($value);
+            } catch (Exception $e) {
+                return $default;
+            }
+        }
+        
+        return $value ?? $default;
     }
 }
 ```
@@ -128,20 +330,28 @@ class MultiContextEncryption
 {
     private ConfigryptService $userEncryption;
     private ConfigryptService $systemEncryption;
+    private ConfigryptService $apiEncryption;
     
     public function __construct()
     {
-        // User-specific encryption
+        // User-specific encryption (for user data)
         $this->userEncryption = new ConfigryptService(
             key: config('app.user_encryption_key'),
             prefix: 'USER_ENC:',
             cipher: 'AES-256-CBC'
         );
         
-        // System-level encryption
+        // System-level encryption (for system configurations)
         $this->systemEncryption = new ConfigryptService(
             key: config('app.system_encryption_key'),
             prefix: 'SYS_ENC:',
+            cipher: 'AES-256-CBC'
+        );
+        
+        // API-specific encryption (for external API keys)
+        $this->apiEncryption = new ConfigryptService(
+            key: config('app.api_encryption_key'),
+            prefix: 'API_ENC:',
             cipher: 'AES-256-CBC'
         );
     }
@@ -154,6 +364,26 @@ class MultiContextEncryption
     public function encryptSystemData(string $data): string
     {
         return $this->systemEncryption->encrypt($data);
+    }
+    
+    public function encryptApiKey(string $key): string
+    {
+        return $this->apiEncryption->encrypt($key);
+    }
+    
+    public function decryptByPrefix(string $encryptedValue): string
+    {
+        // Auto-detect and use appropriate decryptor based on prefix
+        if (str_starts_with($encryptedValue, 'USER_ENC:')) {
+            return $this->userEncryption->decrypt($encryptedValue);
+        } elseif (str_starts_with($encryptedValue, 'SYS_ENC:')) {
+            return $this->systemEncryption->decrypt($encryptedValue);
+        } elseif (str_starts_with($encryptedValue, 'API_ENC:')) {
+            return $this->apiEncryption->decrypt($encryptedValue);
+        } else {
+            // Default to main service
+            return app(ConfigryptService::class)->decrypt($encryptedValue);
+        }
     }
 }
 ```

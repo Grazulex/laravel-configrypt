@@ -5,7 +5,9 @@ This directory contains practical examples demonstrating various use cases for L
 ## Available Examples
 
 ### Basic Usage
-- [Basic Encryption/Decryption](basic-usage.php) - Simple encrypt/decrypt operations
+- [Basic Encryption/Decryption](basic-usage.php) - Simple encrypt/decrypt operations with multiple approaches
+- [Helper Functions & Str Macro](helper-functions.php) - Comprehensive guide to helper functions and Str macro
+- [Auto-Decryption Feature](auto-decryption.php) - Advanced auto-decryption that bypasses Laravel's env cache
 - [Environment Variables](environment-variables.php) - Working with .env files
 - [Database Configuration](database-config.php) - Encrypting database credentials
 
@@ -57,6 +59,14 @@ Each PHP example can be run directly:
 # Basic usage example
 php examples/basic-usage.php
 
+# Helper functions example (requires Laravel context)
+php artisan tinker
+>>> require 'examples/helper-functions.php';
+
+# Auto-decryption example (requires Laravel context)  
+php artisan tinker
+>>> require 'examples/auto-decryption.php';
+
 # Database configuration example  
 php examples/database-config.php
 
@@ -82,22 +92,27 @@ php artisan serve
 
 ### 🔰 Beginner Examples
 Perfect for getting started with Laravel Configrypt:
-- Basic encryption/decryption
-- Simple .env usage
-- Database configuration
+- **Basic encryption/decryption** - Understanding core concepts
+- **Helper functions** - Using `configrypt_env()` and `encrypted_env()`
+- **Str macro usage** - Easy migration with `Str::decryptEnv()`
+- **Simple .env usage** - Basic environment variable encryption
+- **Database configuration** - Practical database credential encryption
 
 ### 🔧 Intermediate Examples  
 For developers implementing real-world scenarios:
-- API key management
-- Multi-environment setup
-- Custom service integration
+- **Auto-decryption feature** - Advanced automatic decryption
+- **API key management** - Managing third-party service credentials
+- **Multi-environment setup** - Different configurations per environment
+- **Custom service integration** - Integrating with existing services
+- **Migration strategies** - Moving from plain to encrypted values
 
 ### 🚀 Advanced Examples
 For complex implementations and enterprise usage:
-- Batch operations
-- CI/CD integration
-- Key rotation strategies
-- Performance optimization
+- **Batch operations** - Bulk encryption and decryption
+- **CI/CD integration** - Automated pipeline setup
+- **Key rotation strategies** - Secure key management
+- **Performance optimization** - Efficient usage patterns
+- **Custom encryption contexts** - Multiple encryption schemes
 
 ### 🧪 Testing Examples
 For testing encrypted configurations:
@@ -168,12 +183,28 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 ### Running Examples Outside Laravel
 
-Some examples require Laravel application context. To run them:
+Some examples require Laravel application context. For those examples:
 
+**Method 1: Use Laravel's artisan tinker (recommended)**
 ```bash
-# Use Laravel's artisan tinker
 php artisan tinker
->>> require 'examples/your-example.php';
+>>> require 'examples/helper-functions.php';
+>>> require 'examples/auto-decryption.php';
+```
+
+**Method 2: Create a test route (for web testing)**
+```php
+// routes/web.php
+Route::get('/test-configrypt', function () {
+    require base_path('examples/helper-functions.php');
+});
+```
+
+**Method 3: Create an artisan command**
+```bash
+php artisan make:command TestConfigrypt
+# Then add require statements in the handle() method
+php artisan test:configrypt
 ```
 
 ### Missing Dependencies
