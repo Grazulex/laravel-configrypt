@@ -12,7 +12,7 @@ use LaravelConfigrypt\Services\ConfigryptService;
  * @method static string decrypt(string $encryptedValue)
  * @method static bool isEncrypted(string $value)
  * @method static string getPrefix()
- * @method static string getKey()
+ * @method static ?string getKey()
  *
  * @see \LaravelConfigrypt\Services\ConfigryptService
  */

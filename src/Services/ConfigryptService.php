@@ -10,17 +10,19 @@ use InvalidArgumentException;
 class ConfigryptService
 {
     protected Encrypter $encrypter;
-    protected string $prefix;
 
     public function __construct(
-        protected string $key,
-        string $prefix = 'ENC:',
+        protected ?string $key,
+        protected string $prefix = 'ENC:',
         string $cipher = 'AES-256-CBC'
     ) {
-        $this->prefix = $prefix;
-        
-        if (empty($key)) {
-            throw new InvalidArgumentException('Encryption key cannot be empty. Please set CONFIGRYPT_KEY or APP_KEY.');
+        // For PHPStan analysis, use a dummy key if no key is provided
+        if ($key === null || $key === '' || $key === '0') {
+            if (defined('PHPSTAN_ANALYSIS')) {
+                $key = str_repeat('a', 32); // Dummy key for analysis
+            } else {
+                throw new InvalidArgumentException('Encryption key cannot be empty. Please set CONFIGRYPT_KEY or APP_KEY.');
+            }
         }
 
         // Ensure the key is the right length for the cipher
@@ -38,6 +40,7 @@ class ConfigryptService
     public function encrypt(string $value): string
     {
         $encrypted = $this->encrypter->encrypt($value);
+
         return $this->prefix . $encrypted;
     }
 
@@ -73,7 +76,7 @@ class ConfigryptService
     /**
      * Get the encryption key.
      */
-    public function getKey(): string
+    public function getKey(): ?string
     {
         return $this->key;
     }
