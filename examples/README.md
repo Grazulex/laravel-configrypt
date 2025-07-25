@@ -12,8 +12,8 @@ This directory contains practical examples demonstrating various use cases for L
 ### Advanced Usage  
 - [API Keys Management](api-keys.php) - Managing third-party API keys
 - [Multi-Environment Setup](multi-environment.php) - Different keys per environment
-- [Custom Service Integration](custom-service.php) - Integrating with custom services
 - [Batch Operations](batch-operations.php) - Bulk encryption/decryption
+- [CI/CD Pipeline Integration](ci-cd-example.md) - GitHub Actions and GitLab CI/CD
 
 ### Real-World Scenarios
 - [Laravel Application Setup](laravel-app/) - Complete Laravel app example
