@@ -34,6 +34,10 @@ class LaravelConfigryptServiceProvider extends ServiceProvider
         });
 
         $this->app->alias(ConfigryptService::class, 'configrypt');
+
+        if (config('configrypt.auto_decrypt', true)) {
+            $this->autoDecryptEnvironmentVariables();
+        }
     }
 
     /**
@@ -45,9 +49,6 @@ class LaravelConfigryptServiceProvider extends ServiceProvider
             __DIR__ . '/Config/configrypt.php' => config_path('configrypt.php'),
         ], 'configrypt-config');
 
-        if (config('configrypt.auto_decrypt', true)) {
-            $this->autoDecryptEnvironmentVariables();
-        }
 
         if ($this->app->runningInConsole()) {
             $this->commands([
