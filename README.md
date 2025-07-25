@@ -70,31 +70,86 @@ return [
 ];
 ```
 
-## 🔧 Usage
+## 🚀 Quick Start
 
-### Encrypt a value
+### 1. Install the package
 
 ```bash
-php artisan configrypt:encrypt "my-super-secret"
+composer require grazulex/laravel-configrypt
+```
+
+### 2. Publish configuration (optional)
+
+```bash
+php artisan vendor:publish --tag=configrypt-config
+```
+
+### 3. Encrypt your secrets
+
+```bash
+php artisan configrypt:encrypt "my-super-secret-password"
 ```
 
 Output:
 ```
+Encrypted value:
 ENC:gk9AvRZgx6Jyds7K2uFctw==
+
+You can now use this encrypted value in your .env file:
+SOME_SECRET=ENC:gk9AvRZgx6Jyds7K2uFctw==
 ```
 
-You can then paste that into your `.env` file.
+### 4. Add to your .env file
 
-### Decrypt manually (optional)
-
-```bash
-php artisan configrypt:decrypt "ENC:gk9AvRZgx6Jyds7K2uFctw=="
+```env
+DB_PASSWORD=ENC:gk9AvRZgx6Jyds7K2uFctw==
+API_SECRET=ENC:XyZ123AbC456DeF789GhI012JkL==
+JWT_SECRET=ENC:MnOpQrStUvWxYzAbCdEfGhIjKl==
 ```
 
-Output:
+### 5. Use in your application
+
+```php
+// These will automatically return the decrypted values
+$dbPassword = env('DB_PASSWORD');
+$apiSecret = config('services.api.secret');
+$jwtSecret = config('jwt.secret');
 ```
-my-super-secret
+
+## 🔧 Advanced Usage
+
+### Using the Facade
+
+```php
+use LaravelConfigrypt\Facades\Configrypt;
+
+// Encrypt a value
+$encrypted = Configrypt::encrypt('my-secret-value');
+
+// Decrypt a value
+$decrypted = Configrypt::decrypt('ENC:encrypted-value');
+
+// Check if a value is encrypted
+$isEncrypted = Configrypt::isEncrypted('ENC:some-value');
 ```
+
+### Dependency Injection
+
+```php
+use LaravelConfigrypt\Services\ConfigryptService;
+
+class MyController extends Controller
+{
+    public function __construct(private ConfigryptService $configrypt)
+    {
+    }
+
+    public function encryptValue(Request $request)
+    {
+        $encrypted = $this->configrypt->encrypt($request->value);
+        return response()->json(['encrypted' => $encrypted]);
+    }
+}
 
 ## 🔄 Auto-Decryption Behavior
 
@@ -105,19 +160,52 @@ Supports:
 - `env('KEY')`
 - `config('service.key')` (if backed by env)
 
-## 🧪 Example Use Case
+## 🧪 Practical Examples
 
-```
+### Database Configuration
+
+```env
+# Encrypt your database password
 DB_PASSWORD=ENC:W3+f/2ZzZfl9KQ==
-
-MAILGUN_SECRET=ENC:Nq8j8hlc3PMp9uE=
-
-APP_SECRET=ENC:XYZ==
-
-MY_API_TOKEN=ENC:123456789abc
 ```
 
-These values will be decrypted at runtime and accessible like any other environment variable or config.
+```php
+// config/database.php - works seamlessly
+'mysql' => [
+    'driver' => 'mysql',
+    'password' => env('DB_PASSWORD'), // Automatically decrypted
+],
+```
+
+### API Keys Management
+
+```env
+# Third-party service credentials
+STRIPE_SECRET=ENC:Nq8j8hlc3PMp9uE=
+MAILGUN_SECRET=ENC:XYZ123456789abc=
+AWS_SECRET_ACCESS_KEY=ENC:AbCdEf1234567890=
+```
+
+```php
+// config/services.php
+'stripe' => [
+    'secret' => env('STRIPE_SECRET'), // Auto-decrypted
+],
+```
+
+### Multi-Environment Setup
+
+```bash
+# Development
+CONFIGRYPT_KEY=dev-key-32-characters-long-----
+DB_PASSWORD=ENC:dev-encrypted-password
+
+# Production  
+CONFIGRYPT_KEY=prod-key-32-characters-long----
+DB_PASSWORD=ENC:prod-encrypted-password
+```
+
+More examples available in the [`examples/`](examples/) directory.
 
 ## 🔑 Changing Keys
 
@@ -138,11 +226,30 @@ You can define a custom `CONFIGRYPT_KEY` in `.env` to use a dedicated encryption
 composer require grazulex/laravel-configrypt
 
 php artisan vendor:publish --tag=configrypt-config
+
+# Encrypt a secret
+php artisan configrypt:encrypt "your-secret-value"
+
+# Add to .env file
+echo "MY_SECRET=ENC:your-encrypted-value" >> .env
+
+# Use in your application
+$secret = env('MY_SECRET'); // Automatically decrypted!
 ```
 
 ## 📚 Documentation
 
-Coming soon: see `docs/` folder
+Comprehensive documentation is available in the [`docs/`](docs/) directory:
+
+- **[Installation](docs/installation.md)** - Getting started with Laravel Configrypt
+- **[Configuration](docs/configuration.md)** - Customizing encryption settings
+- **[Basic Usage](docs/basic-usage.md)** - Fundamental encryption/decryption operations
+- **[Advanced Usage](docs/advanced-usage.md)** - Complex scenarios and integrations
+- **[Artisan Commands](docs/artisan-commands.md)** - Command-line tools reference
+- **[API Reference](docs/api-reference.md)** - Complete API documentation
+- **[Security Considerations](docs/security.md)** - Security best practices
+- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
+- **[Examples](examples/README.md)** - Practical usage examples
 
 ## 📄 License
 
