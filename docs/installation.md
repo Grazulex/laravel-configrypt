@@ -38,7 +38,21 @@ CONFIGRYPT_KEY=your-32-character-encryption-key-here
 APP_KEY=base64:your-laravel-app-key-here
 ```
 
-### 4. Verify Installation
+### 4. Enable Auto-Decryption (Recommended)
+
+For seamless integration with existing Laravel code, enable auto-decryption:
+
+```env
+# Add to your .env file
+CONFIGRYPT_AUTO_DECRYPT=true
+```
+
+With auto-decryption enabled:
+- Encrypted environment variables are automatically decrypted during bootstrap
+- Your existing `env()` and `config()` calls work normally
+- No code changes needed for basic usage
+
+### 5. Verify Installation
 
 Test that the installation is working:
 
@@ -55,11 +69,35 @@ You can now use this encrypted value in your .env file:
 SOME_SECRET=ENC:AbCdEfGhIjKlMnOpQrStUvWxYz==
 ```
 
+### 6. Test Auto-Decryption (If Enabled)
+
+Add the encrypted value to your `.env` file and test it:
+
+```env
+TEST_SECRET=ENC:AbCdEfGhIjKlMnOpQrStUvWxYz==
+```
+
+Test in artisan tinker:
+```bash
+php artisan tinker
+>>> env('TEST_SECRET')  // Should return "test-value"
+>>> configrypt_env('TEST_SECRET')  // Also returns "test-value"
+```
+
 ## Package Auto-Discovery
 
-Laravel Configrypt uses Laravel's package auto-discovery feature, so the service provider will be automatically registered. No manual registration is required.
+Laravel Configrypt uses Laravel's package auto-discovery feature, so the service provider will be automatically registered. The package provides:
 
-## Manual Registration (Laravel < 5.5)
+- **ConfigryptService**: Main encryption/decryption service
+- **EnvironmentDecryptor**: Environment variable handling service  
+- **Helper functions**: `configrypt_env()` and `encrypted_env()`
+- **Str macro**: `Str::decryptEnv()` for easy migration
+- **Artisan commands**: `configrypt:encrypt` and `configrypt:decrypt`
+- **Auto-decryption**: Optional automatic environment decryption
+
+No manual registration is required for Laravel 12.19+.
+
+## Manual Registration (Laravel < 12.19)
 
 If you're using an older version of Laravel that doesn't support package auto-discovery, add the service provider to your `config/app.php`:
 
@@ -70,13 +108,63 @@ If you're using an older version of Laravel that doesn't support package auto-di
 ],
 ```
 
-And optionally add the facade:
+And optionally add the facades:
 
 ```php
 'aliases' => [
     // Other aliases...
     'Configrypt' => LaravelConfigrypt\Facades\Configrypt::class,
+    'ConfigryptEnv' => LaravelConfigrypt\Facades\ConfigryptEnv::class,
 ],
+```
+
+## Configuration Options
+
+After installation, you can customize behavior via environment variables:
+
+```env
+# Enable/disable auto-decryption
+CONFIGRYPT_AUTO_DECRYPT=true
+
+# Custom encryption prefix
+CONFIGRYPT_PREFIX=ENC:
+
+# Encryption cipher method
+CONFIGRYPT_CIPHER=AES-256-CBC
+
+# Dedicated encryption key
+CONFIGRYPT_KEY=your-32-character-encryption-key-here
+```
+
+## Multiple Usage Patterns
+
+Laravel Configrypt supports multiple usage patterns depending on your needs:
+
+### Pattern 1: Auto-Decryption (Easiest)
+```env
+CONFIGRYPT_AUTO_DECRYPT=true
+DB_PASSWORD=ENC:encrypted-password
+```
+```php
+$password = env('DB_PASSWORD'); // Returns decrypted value automatically
+```
+
+### Pattern 2: Helper Functions (Explicit)
+```php
+$password = configrypt_env('DB_PASSWORD');  // Always works
+$secret = encrypted_env('API_SECRET');      // Alias for configrypt_env()
+```
+
+### Pattern 3: Str Macro (Migration-Friendly)
+```php
+use Illuminate\Support\Str;
+$password = Str::decryptEnv('DB_PASSWORD'); // Easy search & replace
+```
+
+### Pattern 4: Facades (Advanced)
+```php
+use LaravelConfigrypt\Facades\ConfigryptEnv;
+$password = ConfigryptEnv::get('DB_PASSWORD');
 ```
 
 ## Next Steps

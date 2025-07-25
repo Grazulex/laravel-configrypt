@@ -32,7 +32,7 @@ It protects values like API tokens, database credentials, or secret keys — esp
 
 In your `.env`:
 
-```
+```env
 MAIL_PASSWORD=ENC:gk9AvRZgx6Jyds7K2uFctw==
 ```
 
@@ -40,18 +40,23 @@ In your Laravel code:
 
 ```php
 // Method 1: Use helper functions (recommended)
-configrypt_env('MAIL_PASSWORD');     // returns decrypted value
-encrypted_env('MAIL_PASSWORD');      // alias for configrypt_env()
+$password = configrypt_env('MAIL_PASSWORD');     // returns decrypted value
+$password = encrypted_env('MAIL_PASSWORD');      // alias for configrypt_env()
 
-// Method 2: Use the facade
+// Method 2: Use the Str macro for easy migration
+use Illuminate\Support\Str;
+$password = Str::decryptEnv('MAIL_PASSWORD');    // easy search & replace from env()
+
+// Method 3: Use the environment facade
 use LaravelConfigrypt\Facades\ConfigryptEnv;
-ConfigryptEnv::get('MAIL_PASSWORD'); // returns decrypted value
+$password = ConfigryptEnv::get('MAIL_PASSWORD'); // returns decrypted value
 
-// Method 3: Manual decryption
+// Method 4: Manual decryption
 use LaravelConfigrypt\Facades\Configrypt;
-Configrypt::decrypt(env('MAIL_PASSWORD')); // manual decrypt
+$rawValue = env('MAIL_PASSWORD'); // still encrypted due to Laravel's env cache
+$password = Configrypt::decrypt($rawValue);      // manual decrypt
 
-// Note: env('MAIL_PASSWORD') returns encrypted value due to Laravel's cache
+// Note: env('MAIL_PASSWORD') returns encrypted value due to Laravel's cache limitation
 ```
 
 ## ⚙️ Configuration
@@ -71,13 +76,14 @@ return [
     'key' => env('CONFIGRYPT_KEY', env('APP_KEY')),
 
     // Prefix used to identify encrypted values
-    'prefix' => 'ENC:',
+    'prefix' => env('CONFIGRYPT_PREFIX', 'ENC:'),
 
     // Cipher method
-    'cipher' => 'AES-256-CBC',
+    'cipher' => env('CONFIGRYPT_CIPHER', 'AES-256-CBC'),
 
-    // Automatically decrypt during config/bootstrap
-    'auto_decrypt' => true,
+    // Automatically decrypt during early bootstrap (default: false)
+    // When true, encrypted env vars are decrypted during service provider registration
+    'auto_decrypt' => env('CONFIGRYPT_AUTO_DECRYPT', false),
 ];
 ```
 
@@ -131,10 +137,15 @@ $dbPassword = configrypt_env('DB_PASSWORD');  // Returns decrypted value
 $apiSecret = encrypted_env('API_SECRET');     // Alias for consistency
 
 // ✅ Or use the facade for more control
+use LaravelConfigrypt\Facades\ConfigryptEnv;
 $dbPassword = ConfigryptEnv::get('DB_PASSWORD');
 
-// ✅ Or use the new Str macro for easy migration
+// ✅ Or use the Str macro for easy migration
+use Illuminate\Support\Str;
 $dbPassword = Str::decryptEnv('DB_PASSWORD');
+
+// ✅ Enable auto-decryption to bypass Laravel's env cache (advanced)
+// Set CONFIGRYPT_AUTO_DECRYPT=true in .env to decrypt during early bootstrap
 ```
 
 ## ⚠️ Important: Laravel env() Cache Limitation
@@ -162,7 +173,17 @@ use Illuminate\Support\Str;
 $password = Str::decryptEnv('DB_PASSWORD');
 ```
 
-**Option 3: Manual Decryption**
+**Option 3: Enable Auto-Decryption (Advanced)**
+```php
+// Set in .env file:
+CONFIGRYPT_AUTO_DECRYPT=true
+
+// This enables early decryption that bypasses Laravel's env cache
+// After enabling, env() will return decrypted values
+$password = env('DB_PASSWORD'); // Now returns decrypted value
+```
+
+**Option 4: Manual Decryption**
 ```php
 use LaravelConfigrypt\Facades\Configrypt;
 
@@ -172,7 +193,16 @@ $password = Configrypt::isEncrypted($rawValue) ? Configrypt::decrypt($rawValue) 
 
 ### 🚀 Quick Migration
 
-**Find and Replace in your codebase:**
+**Option A: Enable Auto-Decryption (Recommended)**
+```bash
+# Add to your .env file
+echo "CONFIGRYPT_AUTO_DECRYPT=true" >> .env
+
+# Now env() calls work normally - no code changes needed!
+# Your existing env() calls will return decrypted values
+```
+
+**Option B: Find and Replace in Codebase**
 ```bash
 # Replace env() calls with configrypt_env()
 find . -name "*.php" -exec sed -i 's/env(/configrypt_env(/g' {} \;
@@ -202,6 +232,35 @@ $isEncrypted = Configrypt::isEncrypted('ENC:some-value');
 $dbPassword = ConfigryptEnv::get('DB_PASSWORD');
 $allDecrypted = ConfigryptEnv::getAllDecrypted();
 ConfigryptEnv::decryptAll(); // Process all ENC: prefixed variables
+```
+
+### Helper Functions
+
+```php
+// Primary helper functions (recommended approach)
+$dbPassword = configrypt_env('DB_PASSWORD', 'default-value');
+$apiKey = encrypted_env('API_KEY'); // alias for configrypt_env()
+
+// Str macro for easy migration from env() calls
+use Illuminate\Support\Str;
+$secret = Str::decryptEnv('JWT_SECRET');
+```
+
+### Auto-Decryption Feature
+
+```php
+// Enable in .env file:
+CONFIGRYPT_AUTO_DECRYPT=true
+
+// This enables early decryption during service provider registration
+// After enabling, Laravel's env() function returns decrypted values:
+$password = env('DB_PASSWORD'); // Returns decrypted value
+
+// The auto-decryption feature:
+// 1. Decrypts all ENC: prefixed env vars during early bootstrap
+// 2. Updates $_ENV, $_SERVER, and putenv()
+// 3. Clears Laravel's environment cache to ensure env() returns decrypted values
+// 4. Handles errors gracefully (silent in production, logged in debug mode)
 ```
 
 ### Dependency Injection
@@ -245,6 +304,8 @@ DB_PASSWORD=ENC:W3+f/2ZzZfl9KQ==
 'mysql' => [
     'driver' => 'mysql',
     'password' => configrypt_env('DB_PASSWORD'), // Use helper function
+    // OR if auto-decryption is enabled:
+    'password' => env('DB_PASSWORD'), // Works with auto-decrypt enabled
 ],
 ```
 
@@ -261,16 +322,19 @@ AWS_SECRET_ACCESS_KEY=ENC:AbCdEf1234567890=
 // config/services.php
 'stripe' => [
     'secret' => configrypt_env('STRIPE_SECRET'),
+    // OR with auto-decrypt: 'secret' => env('STRIPE_SECRET'),
 ],
 
 'mailgun' => [
     'secret' => configrypt_env('MAILGUN_SECRET'),
+    // OR with auto-decrypt: 'secret' => env('MAILGUN_SECRET'),
 ],
 
 // config/filesystems.php
 's3' => [
     'driver' => 's3',
     'secret' => configrypt_env('AWS_SECRET_ACCESS_KEY'),
+    // OR with auto-decrypt: 'secret' => env('AWS_SECRET_ACCESS_KEY'),
 ],
 ```
 
@@ -279,10 +343,12 @@ AWS_SECRET_ACCESS_KEY=ENC:AbCdEf1234567890=
 ```bash
 # Development
 CONFIGRYPT_KEY=dev-key-32-characters-long-----
+CONFIGRYPT_AUTO_DECRYPT=true
 DB_PASSWORD=ENC:dev-encrypted-password
 
 # Production  
 CONFIGRYPT_KEY=prod-key-32-characters-long----
+CONFIGRYPT_AUTO_DECRYPT=true
 DB_PASSWORD=ENC:prod-encrypted-password
 ```
 
@@ -296,26 +362,41 @@ You can define a custom `CONFIGRYPT_KEY` in `.env` to use a dedicated encryption
 
 ## 🛡️ Security Considerations
 
-- Decryption only happens in memory — encrypted values never touch disk after load
-- `ENC:` prefix ensures only intended values are decrypted
-- Best used with `.env.staging`, `.env.production`, or vault-managed `.env` overrides
-- Ideal for sharing `.env` securely in teams or across pipelines
+- **Auto-Decryption Security**: When `CONFIGRYPT_AUTO_DECRYPT=true`, decryption happens during early bootstrap and values are stored in memory only
+- **Environment Variable Safety**: Decrypted values never touch disk after load, only stored in runtime memory
+- **Prefix Protection**: `ENC:` prefix ensures only intended values are decrypted
+- **Error Handling**: Graceful fallbacks prevent application crashes from decryption failures
+- **Key Management**: Only encrypted values with the correct key can be decrypted - keep your key safe!
+- **Production Usage**: Ideal for `.env.staging`, `.env.production`, or vault-managed `.env` overrides
+- **Team Sharing**: Perfect for sharing `.env` securely in teams or across pipelines
 
 ## 🚀 Quick Start
 
 ```bash
+# 1. Install the package
 composer require grazulex/laravel-configrypt
 
+# 2. Publish configuration (optional)
 php artisan vendor:publish --tag=configrypt-config
 
-# Encrypt a secret
+# 3. Enable auto-decryption (recommended)
+echo "CONFIGRYPT_AUTO_DECRYPT=true" >> .env
+
+# 4. Encrypt a secret
 php artisan configrypt:encrypt "your-secret-value"
 
-# Add to .env file
+# 5. Add to .env file
 echo "MY_SECRET=ENC:your-encrypted-value" >> .env
 
-# Use in your application
+# 6. Use in your application (multiple options)
+# Option A: Works automatically with auto-decrypt enabled
+$secret = env('MY_SECRET');
+
+# Option B: Use helper functions (always works)
 $secret = configrypt_env('MY_SECRET');
+
+# Option C: Use Str macro for easy migration
+$secret = Str::decryptEnv('MY_SECRET');
 ```
 
 ## 📚 Documentation
