@@ -60,11 +60,15 @@ return [
     |--------------------------------------------------------------------------
     |
     | When enabled, encrypted environment variables will be automatically
-    | decrypted during the application bootstrap process.
+    | decrypted during the application bootstrap process. This happens very
+    | early during service provider registration and bypasses Laravel's
+    | environment caching to ensure env() returns decrypted values.
+    |
+    | Set to false to disable auto-decryption and use manual helpers only.
     |
     */
 
-    'auto_decrypt' => env('CONFIGRYPT_AUTO_DECRYPT', true),
+    'auto_decrypt' => env('CONFIGRYPT_AUTO_DECRYPT', false),
 
 ];
 ```
@@ -132,26 +136,47 @@ CONFIGRYPT_CIPHER=AES-128-CBC
 ### Auto Decrypt
 
 **Environment Variable**: `CONFIGRYPT_AUTO_DECRYPT`  
-**Default**: `true`  
+**Default**: `false`  
 **Type**: Boolean
 
-When enabled, encrypted environment variables will be automatically decrypted during the Laravel application bootstrap process. This allows transparent usage with `env()` and `config()` helpers.
+When enabled, encrypted environment variables will be automatically decrypted during the Laravel application bootstrap process. This innovative feature works by:
+
+1. **Early Decryption**: Decryption happens during service provider registration (very early in Laravel's boot process)
+2. **Environment Update**: Updates `$_ENV`, `$_SERVER`, and `putenv()` with decrypted values
+3. **Cache Clearing**: Clears Laravel's internal environment cache using reflection to force re-reading
+4. **Transparent Operation**: After enabling, `env()` calls return decrypted values seamlessly
 
 ```env
-# Enable auto-decryption (default)
+# Enable auto-decryption (recommended for most use cases)
 CONFIGRYPT_AUTO_DECRYPT=true
 
-# Disable auto-decryption (manual decryption only)
+# Disable auto-decryption (use manual helpers only)
 CONFIGRYPT_AUTO_DECRYPT=false
 ```
 
-When disabled, you'll need to manually decrypt values using the `Configrypt` facade:
-
+**With Auto-Decryption Enabled:**
 ```php
-use LaravelConfigrypt\Facades\Configrypt;
+// Works normally - env() returns decrypted values
+$dbPassword = env('DB_PASSWORD');
+$apiKey = env('STRIPE_SECRET');
 
-$decrypted = Configrypt::decrypt(env('ENCRYPTED_VALUE'));
+// Config files work normally too
+$dbPassword = config('database.connections.mysql.password');
 ```
+
+**With Auto-Decryption Disabled:**
+```php
+// env() returns encrypted values, use helpers instead
+$dbPassword = configrypt_env('DB_PASSWORD');  // Helper function
+$apiKey = encrypted_env('STRIPE_SECRET');     // Helper alias
+$jwtSecret = Str::decryptEnv('JWT_SECRET');   // Str macro
+```
+
+**Security Note**: Auto-decryption is secure because:
+- Decryption only happens in memory during application bootstrap
+- Decrypted values never touch disk storage
+- Failed decryptions are handled gracefully without breaking the application
+- Only values with the correct encryption prefix are processed
 
 ## Environment-Specific Configuration
 
@@ -161,6 +186,14 @@ You can use different configurations for different environments:
 ```env
 CONFIGRYPT_KEY=development-key-32-characters
 CONFIGRYPT_PREFIX=DEV_ENC:
+CONFIGRYPT_AUTO_DECRYPT=true
+```
+
+### Staging (.env.staging)
+```env
+CONFIGRYPT_KEY=staging-key-32-characters-long--
+CONFIGRYPT_PREFIX=ENC:
+CONFIGRYPT_CIPHER=AES-256-CBC
 CONFIGRYPT_AUTO_DECRYPT=true
 ```
 
@@ -179,13 +212,95 @@ CONFIGRYPT_PREFIX=TEST_ENC:
 CONFIGRYPT_AUTO_DECRYPT=true
 ```
 
+## Usage Patterns by Configuration
+
+### Auto-Decryption Enabled (Recommended)
+
+Most seamless approach - existing code continues to work:
+
+```env
+CONFIGRYPT_AUTO_DECRYPT=true
+```
+
+```php
+// Your existing code works without changes
+$dbPassword = env('DB_PASSWORD');        // Returns decrypted value
+$apiKey = config('services.stripe.secret'); // Returns decrypted value
+```
+
+### Auto-Decryption Disabled (Manual Control)
+
+More explicit control over decryption:
+
+```env
+CONFIGRYPT_AUTO_DECRYPT=false
+```
+
+```php
+// Use helper functions for decryption
+$dbPassword = configrypt_env('DB_PASSWORD');
+$apiKey = encrypted_env('STRIPE_SECRET');
+$jwtSecret = Str::decryptEnv('JWT_SECRET');
+
+// Or use facades
+$dbPassword = ConfigryptEnv::get('DB_PASSWORD');
+```
+
+### Hybrid Approach (Migration)
+
+Enable auto-decryption but use helpers for new code:
+
+```env
+CONFIGRYPT_AUTO_DECRYPT=true
+```
+
+```php
+// Legacy code works normally
+$dbPassword = env('DB_PASSWORD');
+
+// New code uses explicit helpers
+$apiKey = configrypt_env('STRIPE_SECRET');
+```
+
 ## Security Best Practices
 
 1. **Use Dedicated Keys**: Use a separate `CONFIGRYPT_KEY` instead of relying on `APP_KEY`
-2. **Key Rotation**: Regularly rotate your encryption keys
+2. **Key Rotation**: Regularly rotate your encryption keys and re-encrypt values
 3. **Environment Isolation**: Use different keys for different environments
-4. **Key Management**: Store encryption keys securely (e.g., in a key vault)
-5. **Strong Keys**: Use cryptographically secure random keys
+4. **Key Management**: Store encryption keys securely (e.g., in a key vault or secrets manager)
+5. **Strong Keys**: Use cryptographically secure random keys (32 characters for AES-256-CBC)
+6. **Auto-Decryption Security**: When using auto-decryption, ensure your deployment environment is secure
+7. **Monitoring**: Monitor decryption errors in production to catch configuration issues
+8. **Backup Strategy**: Have a plan for key recovery and emergency access to encrypted values
+
+## Troubleshooting Configuration
+
+### Common Issues
+
+**Auto-Decryption Not Working:**
+- Ensure `CONFIGRYPT_AUTO_DECRYPT=true` is set
+- Verify the encryption key is correct
+- Check that encrypted values have the correct prefix
+
+**Decryption Errors:**
+- Verify the encryption key matches the key used for encryption
+- Check that the cipher method matches
+- Ensure the encrypted value hasn't been corrupted
+
+**Performance Concerns:**
+- Auto-decryption happens once during bootstrap, not on every request
+- Consider disabling auto-decryption if you only need to decrypt a few values
+- Use helper functions for fine-grained control
+
+### Debug Mode
+
+Enable Laravel's debug mode to see detailed error messages:
+
+```env
+APP_DEBUG=true
+```
+
+This will show detailed error messages for failed decryption attempts.
 
 ## Next Steps
 

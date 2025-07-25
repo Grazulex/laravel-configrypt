@@ -4,8 +4,8 @@
  * Example: Basic Encryption and Decryption
  *
  * This example demonstrates the fundamental encryption and decryption operations
- * using Laravel Configrypt. It shows how to use both the service class directly
- * and the Laravel facade.
+ * using Laravel Configrypt. It shows multiple approaches: service class directly,
+ * helper functions, Str macro, and facade usage.
  *
  * Usage:
  * - Run: php examples/basic-usage.php
@@ -18,10 +18,16 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use LaravelConfigrypt\Facades\Configrypt;
 use LaravelConfigrypt\Services\ConfigryptService;
+use Illuminate\Support\Str;
 
 echo "=== Laravel Configrypt Basic Usage Example ===\n\n";
+
+// Get encryption key from environment or use example key
+$encryptionKey = $_ENV['CONFIGRYPT_KEY'] ?? $_ENV['APP_KEY'] ?? 'example-key-32-characters-long--';
+
+echo "🔐 Multiple Ways to Use Laravel Configrypt\n";
+echo "==========================================\n\n";
 
 // Method 1: Using the service directly
 echo "1. Using ConfigryptService directly:\n";
@@ -30,7 +36,6 @@ echo "-----------------------------------\n";
 try {
     // Create service instance
     // In a real Laravel app, this would be injected or resolved from container
-    $encryptionKey = $_ENV['CONFIGRYPT_KEY'] ?? $_ENV['APP_KEY'] ?? 'example-key-32-characters-long--';
     $service = new ConfigryptService(
         key: $encryptionKey,
         prefix: 'ENC:',
@@ -60,23 +65,61 @@ try {
     echo 'Error using service: ' . $e->getMessage() . "\n\n";
 }
 
-// Method 2: Using the Laravel Facade (in Laravel context)
-echo "2. Using Configrypt Facade (Laravel context required):\n";
-echo "-----------------------------------------------------\n";
+// Method 2: Helper Functions (Recommended)
+echo "2. Using Helper Functions (Recommended):\n";
+echo "---------------------------------------\n";
 
-// Note: This would work in a Laravel application context
-// For demo purposes, we'll show the syntax
+echo "Note: Helper functions require Laravel application context.\n";
+echo "In a Laravel app, you would use:\n\n";
 
-echo "// In a Laravel application:\n";
-echo "use LaravelConfigrypt\\Facades\\Configrypt;\n\n";
+echo "// Primary helper function\n";
+echo "\$password = configrypt_env('DB_PASSWORD');\n";
+echo "\$apiKey = configrypt_env('API_KEY', 'default-value');\n\n";
 
-echo "\$original = 'api-secret-key';\n";
-echo "\$encrypted = Configrypt::encrypt(\$original);\n";
-echo "\$decrypted = Configrypt::decrypt(\$encrypted);\n";
-echo "\$isEncrypted = Configrypt::isEncrypted(\$encrypted);\n\n";
+echo "// Alias helper function\n";
+echo "\$secret = encrypted_env('JWT_SECRET');\n\n";
 
-// Method 3: Different data types
-echo "3. Encrypting different types of data:\n";
+echo "These helpers automatically:\n";
+echo "- Check if the value has ENC: prefix\n";
+echo "- Decrypt encrypted values\n";
+echo "- Return original value if not encrypted\n";
+echo "- Provide fallback values on errors\n\n";
+
+// Method 3: Str Macro (Easy Migration)
+echo "3. Using Str Macro (Easy Migration):\n";
+echo "-----------------------------------\n";
+
+echo "In a Laravel application context:\n";
+echo "use Illuminate\\Support\\Str;\n\n";
+
+echo "// Easy migration from env() calls\n";
+echo "\$password = Str::decryptEnv('DB_PASSWORD');\n";
+echo "\$apiKey = Str::decryptEnv('STRIPE_SECRET');\n\n";
+
+echo "Perfect for search & replace in codebase:\n";
+echo "Before: env('DB_PASSWORD')\n";
+echo "After:  Str::decryptEnv('DB_PASSWORD')\n\n";
+
+// Method 4: Auto-Decryption Feature
+echo "4. Auto-Decryption Feature (Advanced):\n";
+echo "--------------------------------------\n";
+
+echo "Set in .env file:\n";
+echo "CONFIGRYPT_AUTO_DECRYPT=true\n\n";
+
+echo "After enabling auto-decryption:\n";
+echo "// Your existing env() calls work normally!\n";
+echo "\$password = env('DB_PASSWORD');  // Returns decrypted value\n";
+echo "\$apiKey = env('STRIPE_SECRET');  // Returns decrypted value\n\n";
+
+echo "How auto-decryption works:\n";
+echo "1. Decryption happens during early service provider registration\n";
+echo "2. All ENC: prefixed env vars are automatically decrypted\n";
+echo "3. Laravel's env cache is cleared using reflection\n";
+echo "4. env() calls return decrypted values seamlessly\n\n";
+
+// Method 5: Different data types
+echo "5. Encrypting different types of data:\n";
 echo "------------------------------------\n";
 
 $testData = [
@@ -87,6 +130,7 @@ $testData = [
     'Special characters' => 'p@ssw0rd!#$%^&*()',
     'Empty string' => '',
     'Long text' => str_repeat('Lorem ipsum dolor sit amet, ', 10),
+    'Unicode text' => 'Héllo Wörld! 🔐🚀',
 ];
 
 try {
@@ -116,8 +160,8 @@ try {
     echo 'Error in batch testing: ' . $e->getMessage() . "\n\n";
 }
 
-// Method 4: Demonstrating prefix usage
-echo "4. Custom prefix usage:\n";
+// Method 6: Demonstrating prefix usage
+echo "6. Custom prefix usage:\n";
 echo "----------------------\n";
 
 try {
@@ -141,8 +185,8 @@ try {
     echo 'Error with custom prefix: ' . $e->getMessage() . "\n\n";
 }
 
-// Method 5: Error handling examples
-echo "5. Error handling:\n";
+// Method 7: Error handling examples
+echo "7. Error handling:\n";
 echo "-----------------\n";
 
 try {
@@ -171,5 +215,36 @@ try {
     echo 'Error in error handling demo: ' . $e->getMessage() . "\n";
 }
 
+// Method 8: Usage recommendations
+echo "\n8. Usage Recommendations:\n";
+echo "------------------------\n";
+
+echo "✅ Recommended Approaches:\n\n";
+
+echo "For new Laravel projects:\n";
+echo "1. Enable auto-decryption: CONFIGRYPT_AUTO_DECRYPT=true\n";
+echo "2. Use existing env() calls normally\n";
+echo "3. No code changes needed!\n\n";
+
+echo "For existing projects (migration):\n";
+echo "1. Use helper functions: configrypt_env('KEY')\n";
+echo "2. Or use Str macro: Str::decryptEnv('KEY')\n";
+echo "3. Gradually enable auto-decryption once confident\n\n";
+
+echo "For explicit control:\n";
+echo "1. Keep auto-decryption disabled\n";
+echo "2. Use helper functions or facades explicitly\n";
+echo "3. Better for applications with complex env handling\n\n";
+
+echo "⚠️  Things to remember:\n";
+echo "- Set CONFIGRYPT_KEY or APP_KEY in environment\n";
+echo "- Use consistent prefixes across environments\n";
+echo "- Test encrypted values in all deployment environments\n";
+echo "- Monitor decryption errors in production\n";
+
 echo "\n=== Example Complete ===\n";
-echo "Next: Try the environment-variables.php example to see how to use encrypted values in .env files\n";
+echo "Next Steps:\n";
+echo "- Try environment-variables.php for .env file integration\n";
+echo "- See database-config.php for real database configuration\n";
+echo "- Check api-keys.php for API key management examples\n";
+echo "- Enable auto-decryption in your Laravel app for seamless integration\n";

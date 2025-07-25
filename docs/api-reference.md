@@ -1,6 +1,249 @@
 # API Reference
 
-Complete API documentation for Laravel Configrypt classes and methods.
+Complete API documentation for Laravel Configrypt classes, helper functions, and methods.
+
+## Helper Functions
+
+Laravel Configrypt provides several global helper functions for easy access to decryption functionality.
+
+### configrypt_env()
+
+Primary helper function to get decrypted environment variables.
+
+```php
+function configrypt_env(string $key, mixed $default = null): mixed
+```
+
+**Parameters:**
+- `$key` (string) - The environment variable key
+- `$default` (mixed) - Default value if key doesn't exist or decryption fails
+
+**Returns:**
+- `mixed` - Decrypted value if encrypted, original value if not encrypted, or default on error
+
+**Behavior:**
+- Checks if the value has the encryption prefix
+- Automatically decrypts encrypted values
+- Returns original value if not encrypted
+- Returns default value on decryption errors
+- Errors are reported in debug mode, silently ignored in production
+
+**Example:**
+```php
+// Basic usage
+$dbPassword = configrypt_env('DB_PASSWORD');
+
+// With default value
+$apiKey = configrypt_env('API_KEY', 'default-key');
+
+// Works with both encrypted and plain values
+$encrypted = 'ENC:abc123';
+$plain = 'plain-text';
+configrypt_env('ENCRYPTED_VAR'); // Returns decrypted value
+configrypt_env('PLAIN_VAR');     // Returns plain value
+```
+
+### encrypted_env()
+
+Alias for `configrypt_env()` - provides a shorter name for consistency.
+
+```php
+function encrypted_env(string $key, mixed $default = null): mixed
+```
+
+**Parameters:**
+- Same as `configrypt_env()`
+
+**Returns:**
+- Same as `configrypt_env()`
+
+**Example:**
+```php
+// Identical to configrypt_env()
+$password = encrypted_env('DB_PASSWORD');
+$secret = encrypted_env('JWT_SECRET', 'fallback');
+```
+
+## Str Macro
+
+Laravel Configrypt adds a macro to the `Str` class for easy migration from `env()` calls.
+
+### Str::decryptEnv()
+
+Macro added to `Illuminate\Support\Str` for decrypting environment variables.
+
+```php
+Str::macro('decryptEnv', function (string $key, $default = null))
+```
+
+**Parameters:**
+- `$key` (string) - The environment variable key
+- `$default` (mixed) - Default value if key doesn't exist
+
+**Returns:**
+- `mixed` - Decrypted value if encrypted, original value if not encrypted
+
+**Example:**
+```php
+use Illuminate\Support\Str;
+
+// Easy migration from env() calls
+$password = Str::decryptEnv('DB_PASSWORD');
+$apiKey = Str::decryptEnv('STRIPE_SECRET', 'default');
+
+// Perfect for search & replace in codebase:
+// Before: env('DB_PASSWORD')
+// After:  Str::decryptEnv('DB_PASSWORD')
+```
+
+## EnvironmentDecryptor
+
+Service class for handling environment variable decryption operations.
+
+### Class: `LaravelConfigrypt\Support\EnvironmentDecryptor`
+
+#### Constructor
+
+```php
+public function __construct(
+    protected ConfigryptService $configryptService,
+    protected string $prefix = 'ENC:'
+)
+```
+
+**Parameters:**
+- `$configryptService` (ConfigryptService) - The main encryption service
+- `$prefix` (string) - The prefix for encrypted values
+
+#### get()
+
+Get and decrypt an environment variable if needed.
+
+```php
+public function get(string $key, mixed $default = null): mixed
+```
+
+**Parameters:**
+- `$key` (string) - Environment variable key
+- `$default` (mixed) - Default value on error or missing key
+
+**Returns:**
+- `mixed` - Decrypted value, original value, or default
+
+**Example:**
+```php
+$decryptor = app(EnvironmentDecryptor::class);
+$password = $decryptor->get('DB_PASSWORD');
+```
+
+#### isEncrypted()
+
+Check if a value appears to be encrypted.
+
+```php
+public function isEncrypted(mixed $value): bool
+```
+
+**Parameters:**
+- `$value` (mixed) - Value to check
+
+**Returns:**
+- `bool` - True if value is string and has encryption prefix
+
+**Example:**
+```php
+$isEncrypted = $decryptor->isEncrypted('ENC:abc123'); // true
+$isEncrypted = $decryptor->isEncrypted('plain-text'); // false
+```
+
+#### decryptAll()
+
+Decrypt all encrypted environment variables in place.
+
+```php
+public function decryptAll(): void
+```
+
+**Behavior:**
+- Modifies `$_ENV` and `putenv()` with decrypted values
+- Processes all environment variables with encryption prefix
+- Handles errors gracefully without breaking the application
+- Does not affect Laravel's `env()` cache
+
+**Example:**
+```php
+$decryptor->decryptAll(); // Decrypts all ENC: prefixed variables
+```
+
+#### getAllDecrypted()
+
+Get all environment variables with encrypted values decrypted.
+
+```php
+public function getAllDecrypted(): array<string, mixed>
+```
+
+**Returns:**
+- `array` - Array of all environment variables with encrypted values decrypted
+
+**Example:**
+```php
+$allVars = $decryptor->getAllDecrypted();
+// Returns associative array of all env vars with decrypted values
+```
+
+## ConfigryptEnv Facade
+
+Laravel facade providing static access to EnvironmentDecryptor methods.
+
+### Class: `LaravelConfigrypt\Facades\ConfigryptEnv`
+
+#### get()
+
+```php
+public static function get(string $key, mixed $default = null): mixed
+```
+
+**Example:**
+```php
+use LaravelConfigrypt\Facades\ConfigryptEnv;
+
+$password = ConfigryptEnv::get('DB_PASSWORD');
+$apiKey = ConfigryptEnv::get('API_KEY', 'default');
+```
+
+#### isEncrypted()
+
+```php
+public static function isEncrypted(mixed $value): bool
+```
+
+**Example:**
+```php
+$isEncrypted = ConfigryptEnv::isEncrypted('ENC:abc123');
+```
+
+#### decryptAll()
+
+```php
+public static function decryptAll(): void
+```
+
+**Example:**
+```php
+ConfigryptEnv::decryptAll(); // Decrypt all encrypted environment variables
+```
+
+#### getAllDecrypted()
+
+```php
+public static function getAllDecrypted(): array<string, mixed>
+```
+
+**Example:**
+```php
+$allDecrypted = ConfigryptEnv::getAllDecrypted();
+```
 
 ## ConfigryptService
 
@@ -261,41 +504,65 @@ Registers the ConfigryptService and handles auto-decryption.
 
 #### register()
 
-Registers the ConfigryptService in the service container.
+Registers services and handles early auto-decryption.
 
 ```php
 public function register(): void
 ```
 
-- Merges configuration from `config/configrypt.php`
-- Registers `ConfigryptService` as singleton
-- Creates alias 'configrypt' for the service
+**Functionality:**
+- Merges configuration from `src/Config/configrypt.php`
+- Checks for auto-decryption setting and performs early decryption if enabled
+- Registers `ConfigryptService` as singleton in service container
+- Registers `EnvironmentDecryptor` as singleton
+- Creates aliases: 'configrypt' and 'configrypt.env'
 
 #### boot()
 
-Bootstrap services and handle auto-decryption.
+Bootstrap services and register additional features.
 
 ```php
 public function boot(): void
 ```
 
-- Publishes configuration file
-- Enables auto-decryption if configured
-- Registers Artisan commands
+**Functionality:**
+- Publishes configuration file with tag 'configrypt-config'
+- Adds Str macro for `decryptEnv` method
+- Registers Artisan commands (`configrypt:encrypt`, `configrypt:decrypt`)
 
-#### autoDecryptEnvironmentVariables()
+#### earlyAutoDecryptEnvironmentVariables()
 
-Automatically decrypt environment variables with the configured prefix.
+Performs early auto-decryption during service provider registration.
 
 ```php
-protected function autoDecryptEnvironmentVariables(): void
+protected function earlyAutoDecryptEnvironmentVariables(): void
 ```
 
-This method:
-- Iterates through all environment variables
-- Identifies encrypted values by prefix
-- Decrypts them and updates `$_ENV` and `putenv()`
+**Advanced Features:**
+- Creates temporary ConfigryptService instance for early decryption
+- Iterates through all `$_ENV` variables looking for encrypted values
+- Decrypts values and updates `$_ENV`, `$_SERVER`, and `putenv()`
+- **Clears Laravel's environment cache** using reflection to force re-reading
 - Handles errors gracefully to prevent application crashes
+- Only runs when `CONFIGRYPT_AUTO_DECRYPT=true`
+
+**Cache Clearing Methods:**
+- `clearLaravelEnvironmentCache()` - Clears specific key from cache
+- `forceResetEnvironmentCache()` - Resets entire environment cache using reflection
+- `reinitializeEnvRepository()` - Forces Laravel to recreate its environment repository
+
+This innovative approach bypasses Laravel's early environment caching, making `env()` calls return decrypted values.
+
+#### addConfigryptMacros()
+
+Adds helpful macros to Laravel classes.
+
+```php
+protected function addConfigryptMacros(): void
+```
+
+**Adds:**
+- `Str::decryptEnv()` macro for easy migration from `env()` calls
 
 ## Configuration
 
@@ -306,16 +573,16 @@ return [
     'key' => env('CONFIGRYPT_KEY', env('APP_KEY')),
     'prefix' => env('CONFIGRYPT_PREFIX', 'ENC:'),
     'cipher' => env('CONFIGRYPT_CIPHER', 'AES-256-CBC'),
-    'auto_decrypt' => env('CONFIGRYPT_AUTO_DECRYPT', true),
+    'auto_decrypt' => env('CONFIGRYPT_AUTO_DECRYPT', false),
 ];
 ```
 
 #### Configuration Keys
 
 - **key** (string) - Encryption key for encrypting/decrypting values
-- **prefix** (string) - Prefix to identify encrypted values in environment variables
+- **prefix** (string) - Prefix to identify encrypted values in environment variables  
 - **cipher** (string) - Encryption cipher method ('AES-256-CBC' or 'AES-128-CBC')
-- **auto_decrypt** (bool) - Whether to automatically decrypt environment variables during bootstrap
+- **auto_decrypt** (bool) - Whether to automatically decrypt environment variables during early bootstrap (default: false)
 
 ## Environment Variables
 
@@ -360,12 +627,23 @@ CONFIGRYPT_CIPHER=AES-256-CBC
 Whether to automatically decrypt environment variables during application bootstrap.
 
 **Type:** Boolean  
-**Default:** `true`  
+**Default:** `false`  
 **Required:** No  
 
 ```env
 CONFIGRYPT_AUTO_DECRYPT=true
 ```
+
+**When enabled:**
+- Encrypted environment variables are decrypted during service provider registration
+- Laravel's environment cache is cleared to ensure `env()` returns decrypted values
+- All `ENC:` prefixed values are processed automatically
+- Enables seamless usage with existing `env()` and `config()` calls
+
+**When disabled:**
+- Use helper functions (`configrypt_env()`, `encrypted_env()`) for decryption
+- Use facades (`ConfigryptEnv::get()`) for more control
+- Use Str macro (`Str::decryptEnv()`) for easy migration
 
 ## Exceptions
 
@@ -428,19 +706,53 @@ public function __construct(
 
 ### Service Container
 
-The ConfigryptService is automatically registered in Laravel's service container:
+The ConfigryptService and EnvironmentDecryptor are automatically registered in Laravel's service container:
 
 ```php
 // Resolve from container
 $configrypt = app(ConfigryptService::class);
+$envDecryptor = app(EnvironmentDecryptor::class);
 
 // Or use dependency injection
 class MyController extends Controller
 {
-    public function __construct(private ConfigryptService $configrypt)
+    public function __construct(
+        private ConfigryptService $configrypt,
+        private EnvironmentDecryptor $envDecryptor
+    ) {
+    }
+    
+    public function example()
     {
+        $encrypted = $this->configrypt->encrypt('secret');
+        $decrypted = $this->envDecryptor->get('DB_PASSWORD');
     }
 }
+
+// Or use aliases
+$configrypt = app('configrypt');
+$envDecryptor = app('configrypt.env');
+```
+
+### Helper Functions
+
+Helper functions are automatically available globally:
+
+```php
+// No need to import or register - available everywhere
+$password = configrypt_env('DB_PASSWORD');
+$secret = encrypted_env('JWT_SECRET');
+```
+
+### Str Macro
+
+The Str macro is automatically registered:
+
+```php
+use Illuminate\Support\Str;
+
+// Available after service provider boots
+$password = Str::decryptEnv('DB_PASSWORD');
 ```
 
 ### Configuration Publishing
@@ -463,6 +775,7 @@ The package uses Laravel's auto-discovery feature, so no manual registration is 
 
 ```php
 use LaravelConfigrypt\Services\ConfigryptService;
+use LaravelConfigrypt\Support\EnvironmentDecryptor;
 
 class ConfigryptTest extends TestCase
 {
@@ -470,7 +783,7 @@ class ConfigryptTest extends TestCase
     {
         parent::setUp();
         
-        // Override service for testing
+        // Override services for testing
         $this->app->singleton(ConfigryptService::class, function () {
             return new ConfigryptService(
                 key: 'test-key-32-characters-long----',
@@ -478,6 +791,24 @@ class ConfigryptTest extends TestCase
                 cipher: 'AES-256-CBC'
             );
         });
+        
+        // Test auto-decryption
+        $_ENV['CONFIGRYPT_AUTO_DECRYPT'] = 'true';
+        $_ENV['CONFIGRYPT_KEY'] = 'test-key-32-characters-long----';
+    }
+    
+    public function test_helper_functions(): void
+    {
+        $_ENV['TEST_VAR'] = 'TEST_ENC:encrypted-value';
+        
+        $decrypted = configrypt_env('TEST_VAR');
+        $this->assertEquals('original-value', $decrypted);
+    }
+    
+    public function test_str_macro(): void
+    {
+        $decrypted = Str::decryptEnv('TEST_VAR');
+        $this->assertNotNull($decrypted);
     }
 }
 ```
