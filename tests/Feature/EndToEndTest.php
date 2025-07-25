@@ -16,10 +16,7 @@ class EndToEndTest extends TestCase
         $app['config']->set('configrypt.key', 'test-key-1234567890123456789012');
         $app['config']->set('configrypt.prefix', 'ENC:');
         $app['config']->set('configrypt.cipher', 'AES-256-CBC');
-        $app['config']->set('configrypt.auto_decrypt', true);
-
-        // Don't set global auto-decrypt - let individual tests control it
-        $_ENV['CONFIGRYPT_KEY'] = 'test-key-1234567890123456789012';
+        $app['config']->set('configrypt.auto_decrypt', false); // Disabled by default now
     }
 
     public function test_complete_encrypt_decrypt_workflow(): void
@@ -43,9 +40,6 @@ class EndToEndTest extends TestCase
 
     public function test_real_world_scenario_database_password(): void
     {
-        // Enable auto-decryption for this test
-        $_ENV['CONFIGRYPT_AUTO_DECRYPT'] = 'true';
-
         // Simulate a real-world scenario where we encrypt a database password
         $dbPassword = 'my-super-secure-db-password-123!@#';
 
@@ -57,21 +51,20 @@ class EndToEndTest extends TestCase
         $_ENV['DB_PASSWORD'] = $encryptedPassword;
         putenv("DB_PASSWORD={$encryptedPassword}");
 
-        // Trigger auto-decryption
+        // Re-instantiate service provider (no auto-decrypt anymore)
         $provider = new LaravelConfigryptServiceProvider($this->app);
         $provider->register();
         $provider->boot();
 
-        // After auto-decrypt: both $_ENV and env() are decrypted due to cache clearing
-        $this->assertSame($dbPassword, $_ENV['DB_PASSWORD']);
-        $this->assertSame($dbPassword, env('DB_PASSWORD'));
+        // Values remain encrypted in $_ENV and env() - this is expected
+        $this->assertStringStartsWith('ENC:', $_ENV['DB_PASSWORD']);
+        $this->assertStringStartsWith('ENC:', env('DB_PASSWORD'));
 
         // Test helper function works correctly
         $this->assertSame($dbPassword, configrypt_env('DB_PASSWORD'));
 
         // Clean up
         unset($_ENV['DB_PASSWORD']);
-        unset($_ENV['CONFIGRYPT_AUTO_DECRYPT']);
         putenv('DB_PASSWORD');
     }
 
@@ -96,17 +89,17 @@ class EndToEndTest extends TestCase
             putenv("{$key}={$encryptedSecrets[$key]}");
         }
 
-        // Trigger auto-decryption
+        // Re-instantiate service provider (no auto-decrypt anymore)
         $provider = new LaravelConfigryptServiceProvider($this->app);
         $provider->register();
         $provider->boot();
 
-        // Verify all values are decrypted in both $_ENV and env() due to cache clearing
+        // Verify all values remain encrypted but helper functions work
         foreach ($secrets as $key => $expectedValue) {
-            $this->assertSame($expectedValue, $_ENV[$key]);
+            $this->assertStringStartsWith('ENC:', $_ENV[$key]);
+            $this->assertStringStartsWith('ENC:', env($key));
+            // Helper function works correctly
             $this->assertSame($expectedValue, configrypt_env($key));
-            // Auto-decrypt clears the cache so env() also returns decrypted values
-            $this->assertSame($expectedValue, env($key));
         }
 
         // Clean up
@@ -114,14 +107,10 @@ class EndToEndTest extends TestCase
             unset($_ENV[$key]);
             putenv($key);
         }
-        unset($_ENV['CONFIGRYPT_AUTO_DECRYPT']);
     }
 
     public function test_mixed_encrypted_and_plain_environment_variables(): void
     {
-        // Enable auto-decryption for this test
-        $_ENV['CONFIGRYPT_AUTO_DECRYPT'] = 'true';
-
         $service = $this->app->make(ConfigryptService::class);
 
         // Set up mixed environment
@@ -133,17 +122,17 @@ class EndToEndTest extends TestCase
         putenv("ENCRYPTED_VALUE={$_ENV['ENCRYPTED_VALUE']}");
         putenv('ANOTHER_PLAIN=another-plain-value');
 
-        // Trigger auto-decryption
+        // Re-instantiate service provider (no auto-decrypt anymore)
         $provider = new LaravelConfigryptServiceProvider($this->app);
         $provider->register();
         $provider->boot();
 
-        // Verify results - plain values work normally, encrypted values are decrypted everywhere due to cache clearing
+        // Verify results - plain values work normally, encrypted values remain encrypted
         $this->assertSame('this-is-plain-text', env('PLAIN_VALUE'));
         $this->assertSame('this-is-plain-text', $_ENV['PLAIN_VALUE']);
 
-        $this->assertSame('this-is-encrypted', $_ENV['ENCRYPTED_VALUE']); // Decrypted in $_ENV
-        $this->assertSame('this-is-encrypted', env('ENCRYPTED_VALUE')); // Also decrypted in env() due to cache clearing
+        $this->assertStringStartsWith('ENC:', $_ENV['ENCRYPTED_VALUE']); // Still encrypted in $_ENV
+        $this->assertStringStartsWith('ENC:', env('ENCRYPTED_VALUE')); // Still encrypted in env()
         $this->assertSame('this-is-encrypted', configrypt_env('ENCRYPTED_VALUE')); // Helper works
 
         $this->assertSame('another-plain-value', env('ANOTHER_PLAIN'));
@@ -151,7 +140,6 @@ class EndToEndTest extends TestCase
 
         // Clean up
         unset($_ENV['PLAIN_VALUE'], $_ENV['ENCRYPTED_VALUE'], $_ENV['ANOTHER_PLAIN']);
-        unset($_ENV['CONFIGRYPT_AUTO_DECRYPT']);
         putenv('PLAIN_VALUE');
         putenv('ENCRYPTED_VALUE');
         putenv('ANOTHER_PLAIN');

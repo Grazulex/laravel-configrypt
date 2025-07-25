@@ -16,16 +16,12 @@ class EnvironmentDecryptionTest extends TestCase
         $app['config']->set('configrypt.key', 'test-key-1234567890123456789012');
         $app['config']->set('configrypt.prefix', 'ENC:');
         $app['config']->set('configrypt.cipher', 'AES-256-CBC');
-        $app['config']->set('configrypt.auto_decrypt', true);
-
-        // Don't set global auto-decrypt - let individual tests control it
-        $_ENV['CONFIGRYPT_KEY'] = 'test-key-1234567890123456789012';
+        $app['config']->set('configrypt.auto_decrypt', false); // Disabled by default now
     }
 
     public function test_auto_decrypt_environment_variables(): void
     {
-        // Enable auto-decryption for this test
-        $_ENV['CONFIGRYPT_AUTO_DECRYPT'] = 'true';
+        // Note: Auto-decrypt has been removed, but test the helper functions work
 
         // Encrypt a test value
         $service = new ConfigryptService('test-key-1234567890123456789012');
@@ -35,20 +31,20 @@ class EnvironmentDecryptionTest extends TestCase
         $_ENV['TEST_ENCRYPTED_VAR'] = $encrypted;
         putenv("TEST_ENCRYPTED_VAR={$encrypted}");
 
-        // Re-instantiate service provider to trigger auto-decrypt
+        // Re-instantiate service provider (no auto-decrypt anymore)
         $provider = new LaravelConfigryptServiceProvider($this->app);
         $provider->register();
         $provider->boot();
 
-        // Check that the environment variable was decrypted in both $_ENV and env()
-        $this->assertSame('secret-database-password', $_ENV['TEST_ENCRYPTED_VAR']);
+        // Values should remain encrypted in $_ENV and env()
+        $this->assertSame($encrypted, $_ENV['TEST_ENCRYPTED_VAR']);
+        $this->assertSame($encrypted, env('TEST_ENCRYPTED_VAR'));
 
-        // Auto-decrypt clears the cache so env() also returns decrypted value
-        $this->assertSame('secret-database-password', env('TEST_ENCRYPTED_VAR'));
+        // But helper functions should work
+        $this->assertSame('secret-database-password', configrypt_env('TEST_ENCRYPTED_VAR'));
 
         // Clean up
         unset($_ENV['TEST_ENCRYPTED_VAR']);
-        unset($_ENV['CONFIGRYPT_AUTO_DECRYPT']);
         putenv('TEST_ENCRYPTED_VAR');
     }
 
@@ -96,11 +92,9 @@ class EnvironmentDecryptionTest extends TestCase
 
     public function test_auto_decrypt_with_custom_prefix(): void
     {
-        // Enable auto-decryption for this test
-        $_ENV['CONFIGRYPT_AUTO_DECRYPT'] = 'true';
-        $_ENV['CONFIGRYPT_PREFIX'] = 'CUSTOM:';
+        // Note: Auto-decrypt has been removed, but test the helper functions work with custom prefix
 
-        // Change the prefix in config as well
+        // Change the prefix in config
         config(['configrypt.prefix' => 'CUSTOM:']);
 
         $service = new ConfigryptService('test-key-1234567890123456789012', 'CUSTOM:');
@@ -109,19 +103,20 @@ class EnvironmentDecryptionTest extends TestCase
         $_ENV['TEST_CUSTOM_VAR'] = $encrypted;
         putenv("TEST_CUSTOM_VAR={$encrypted}");
 
-        // Re-instantiate service provider
+        // Re-instantiate service provider (no auto-decrypt anymore)
         $provider = new LaravelConfigryptServiceProvider($this->app);
         $provider->register();
         $provider->boot();
 
-        // Should be decrypted in both $_ENV and env() due to auto-decrypt clearing cache
-        $this->assertSame('custom-secret', $_ENV['TEST_CUSTOM_VAR']);
-        $this->assertSame('custom-secret', env('TEST_CUSTOM_VAR'));
+        // Values should remain encrypted in $_ENV and env()
+        $this->assertSame($encrypted, $_ENV['TEST_CUSTOM_VAR']);
+        $this->assertSame($encrypted, env('TEST_CUSTOM_VAR'));
+
+        // But helper functions should work with custom prefix
+        $this->assertSame('custom-secret', configrypt_env('TEST_CUSTOM_VAR'));
 
         // Clean up
         unset($_ENV['TEST_CUSTOM_VAR']);
-        unset($_ENV['CONFIGRYPT_AUTO_DECRYPT']);
-        unset($_ENV['CONFIGRYPT_PREFIX']);
         putenv('TEST_CUSTOM_VAR');
     }
 

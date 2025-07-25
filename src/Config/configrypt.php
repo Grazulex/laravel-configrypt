@@ -41,13 +41,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Auto Decrypt
+    | Auto Decrypt (DEPRECATED)
     |--------------------------------------------------------------------------
     |
-    | When enabled, encrypted environment variables will be automatically
-    | decrypted during the application bootstrap process. However, due to
-    | Laravel's environment caching, env() will not return decrypted values.
-    | Use configrypt_env() helper function instead for reliable decryption.
+    | Auto-decryption has been removed due to Laravel's environment caching
+    | limitations and complexity. Use configrypt_env() or encrypted_env()
+    | helper functions instead for reliable decryption.
+    |
+    | This option is kept for backward compatibility but has no effect.
     |
     */
 
