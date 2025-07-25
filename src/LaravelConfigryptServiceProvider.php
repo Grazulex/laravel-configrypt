@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace LaravelConfigrypt;
 
-use Override;
-use LaravelConfigrypt\Commands\EncryptCommand;
-use LaravelConfigrypt\Commands\DecryptCommand;
 use Exception;
 use Illuminate\Support\ServiceProvider;
+use LaravelConfigrypt\Commands\DecryptCommand;
+use LaravelConfigrypt\Commands\EncryptCommand;
 use LaravelConfigrypt\Services\ConfigryptService;
+use Override;
 
 class LaravelConfigryptServiceProvider extends ServiceProvider
 {
