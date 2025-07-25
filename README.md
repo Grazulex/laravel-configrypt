@@ -1,8 +1,8 @@
-# Laravel Confi🔏 Laravel Configrypt lets you **encrypt secrets directly in your `.env` file** using a secure key, and decrypt them using helper functions that work reliably with Laravel's environment caching.rypt
+# Laravel Configrypt
 
-<div align="center">
-  <img src="new_logo.png" alt="Laravel Configrypt" width="100">
-  <p><strong>Encrypt sensitive values in your Laravel .env file and decrypt them automatically at runtime — safe, seamless, and config-driven.</strong></p>
+<img src="new_logo.png" alt="Laravel Configrypt" width="200">
+
+Encrypt sensitive values in your Laravel .env file and decrypt them automatically at runtime — safe, seamless, and config-driven.
 
 [![Latest Version](https://img.shields.io/packagist/v/grazulex/laravel-configrypt.svg?style=flat-square)](https://packagist.org/packages/grazulex/laravel-configrypt)
 [![Total Downloads](https://img.shields.io/packagist/dt/grazulex/laravel-configrypt.svg?style=flat-square)](https://packagist.org/packages/grazulex/laravel-configrypt)
@@ -12,7 +12,6 @@
 [![Tests](https://img.shields.io/github/actions/workflow/status/grazulex/laravel-configrypt/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/Grazulex/laravel-configrypt/actions)
 [![Code Style](https://img.shields.io/badge/code%20style-pint-000000?style=flat-square&logo=laravel)](https://github.com/laravel/pint)
 
-</div>
 
 ## 🔐 Overview
 
