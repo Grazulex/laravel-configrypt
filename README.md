@@ -4,11 +4,14 @@
   <img src="new_logo.png" alt="Laravel Configrypt" width="100">
   <p><strong>Encrypt sensitive values in your Laravel .env file and decrypt them automatically at runtime — safe, seamless, and config-driven.</strong></p>
 
-  [![Latest Version](https://img.shields.io/packagist/v/grazulex/laravel-configrypt)](https://packagist.org/packages/grazulex/laravel-configrypt)
-  [![Total Downloads](https://img.shields.io/packagist/dt/grazulex/laravel-configrypt)](https://packagist.org/packages/grazulex/laravel-configrypt)
-  [![License](https://img.shields.io/github/license/grazulex/laravel-configrypt)](LICENSE.md)
-  [![PHP Version](https://img.shields.io/badge/php-%5E8.3-blue)](https://php.net)
-  [![Laravel Version](https://img.shields.io/badge/laravel-%5E12.19-red)](https://laravel.com)
+[![Latest Version](https://img.shields.io/packagist/v/grazulex/laravel-configrypt.svg?style=flat-square)](https://packagist.org/packages/grazulex/laravel-configrypt)
+[![Total Downloads](https://img.shields.io/packagist/dt/grazulex/laravel-configrypt.svg?style=flat-square)](https://packagist.org/packages/grazulex/laravel-configrypt)
+[![License](https://img.shields.io/github/license/grazulex/laravel-configrypt.svg?style=flat-square)](https://github.com/Grazulex/laravel-configrypt/blob/main/LICENSE.md)
+[![PHP Version](https://img.shields.io/packagist/php-v/grazulex/laravel-configrypt.svg?style=flat-square)](https://php.net/)
+[![Laravel Version](https://img.shields.io/badge/laravel-12.x-ff2d20?style=flat-square&logo=laravel)](https://laravel.com/)
+[![Tests](https://img.shields.io/github/actions/workflow/status/grazulex/laravel-configrypt/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/Grazulex/laravel-configrypt/actions)
+[![Code Style](https://img.shields.io/badge/code%20style-pint-000000?style=flat-square&logo=laravel)](https://github.com/laravel/pint)
+
 </div>
 
 ## 🔐 Overview
