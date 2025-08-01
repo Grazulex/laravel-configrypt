@@ -73,7 +73,9 @@
     "issues": "https://github.com/Grazulex/laravel-configrypt/issues",
     "source": "https://github.com/Grazulex/laravel-configrypt",
     "forum": "https://github.com/Grazulex/laravel-configrypt/discussions",
-    "docs": "https://github.com/Grazulex/laravel-configrypt#readme"
+    "docs": "https://github.com/Grazulex/laravel-configrypt/wiki",
+    "wiki": "https://github.com/Grazulex/laravel-configrypt/wiki",
+    "email": "jms@grazulex.be"
   },
   "scripts": {
     "test": [
