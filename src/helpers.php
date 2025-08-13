@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use LaravelConfigrypt\Services\ConfigryptService;
+use LaravelConfigrypt\Support\ConfigValue;
 
 if (! function_exists('configrypt_env')) {
     /**
@@ -41,5 +42,23 @@ if (! function_exists('encrypted_env')) {
     function encrypted_env(string $key, mixed $default = null): mixed
     {
         return configrypt_env($key, $default);
+    }
+}
+
+if (! function_exists('configrypt_value')) {
+    /**
+     * Create a lazy configuration value that defers decryption until runtime.
+     *
+     * This is specifically designed for use in configuration files to solve
+     * the config:cache problem where encrypted values would be decrypted and
+     * stored in plain text on disk.
+     *
+     * Usage in config files:
+     * 'password' => configrypt_value('ENC:encrypted-value'),
+     * 'api_key' => configrypt_value(env('API_KEY')),
+     */
+    function configrypt_value(string $value, mixed $default = null): ConfigValue
+    {
+        return new ConfigValue($value, $default);
     }
 }
