@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Applied Rector: `declare(strict_types=1)` added to the config file and test files, repeated key checks in `ConfigryptService` simplified with a strict `in_array()`.
+- `phpstan.neon`: removed orphaned `ignoreErrors` entries pointing to non-existent paths (`src/Mappers`, `src/Exporters`, `src/ConfigryptManager.php`, `tests/Feature`) and unmatched Pest patterns; only the config `env()` exception remains.
+- GitHub Actions: `actions/checkout` bumped to v5, `softprops/action-gh-release` bumped to v2.
+
+### Fixed
+
+- Order-dependent test failure: `EndToEndTest` no longer leaks `CONFIGRYPT_AUTO_DECRYPT` into subsequent tests.
+
 ## [v1.6.0] - 2026-09-17
 
 ### Added

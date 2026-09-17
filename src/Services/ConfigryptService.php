@@ -17,7 +17,7 @@ class ConfigryptService
         string $cipher = 'AES-256-CBC'
     ) {
         // For PHPStan analysis, use a dummy key if no key is provided
-        if ($key === null || $key === '' || $key === '0') {
+        if (in_array($key, [null, '', '0'], true)) {
             if (defined('PHPSTAN_ANALYSIS')) {
                 $key = str_repeat('a', 32); // Dummy key for analysis
             } else {

@@ -107,6 +107,7 @@ class EndToEndTest extends TestCase
             unset($_ENV[$key]);
             putenv($key);
         }
+        unset($_ENV['CONFIGRYPT_AUTO_DECRYPT']);
     }
 
     public function test_mixed_encrypted_and_plain_environment_variables(): void
