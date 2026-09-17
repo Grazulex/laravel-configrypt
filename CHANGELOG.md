@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `phpstan.neon`: removed orphaned `ignoreErrors` entries pointing to non-existent paths (`src/Mappers`, `src/Exporters`, `src/ConfigryptManager.php`, `tests/Feature`) and unmatched Pest patterns; only the config `env()` exception remains.
 - GitHub Actions: `actions/checkout` bumped to v5, `softprops/action-gh-release` bumped to v2.
 
+### Fixed
+
+- Order-dependent test failure: `EndToEndTest` no longer leaks `CONFIGRYPT_AUTO_DECRYPT` into subsequent tests.
+
 ## [v1.6.0] - 2026-09-17
 
 ### Added
