@@ -8,7 +8,7 @@ Encrypt sensitive values in your Laravel .env file and decrypt them using helper
 [![Total Downloads](https://img.shields.io/packagist/dt/grazulex/laravel-configrypt.svg?style=flat-square)](https://packagist.org/packages/grazulex/laravel-configrypt)
 [![License](https://img.shields.io/github/license/grazulex/laravel-configrypt.svg?style=flat-square)](https://github.com/Grazulex/laravel-configrypt/blob/main/LICENSE.md)
 [![PHP Version](https://img.shields.io/packagist/php-v/grazulex/laravel-configrypt.svg?style=flat-square)](https://php.net/)
-[![Laravel Version](https://img.shields.io/badge/laravel-12.x-ff2d20?style=flat-square&logo=laravel)](https://laravel.com/)
+[![Laravel Version](https://img.shields.io/badge/laravel-12.x%20%7C%2013.x-ff2d20?style=flat-square&logo=laravel)](https://laravel.com/)
 [![Tests](https://img.shields.io/github/actions/workflow/status/grazulex/laravel-configrypt/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/Grazulex/laravel-configrypt/actions)
 [![Code Style](https://img.shields.io/badge/code%20style-pint-000000?style=flat-square&logo=laravel)](https://github.com/laravel/pint)
 
@@ -88,6 +88,8 @@ return [
 ## 🚀 Quick Start
 
 ### 1. Install the package
+
+**Requirements:** PHP 8.3+ and Laravel 12 or 13.
 
 ```bash
 composer require grazulex/laravel-configrypt
