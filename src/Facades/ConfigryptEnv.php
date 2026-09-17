@@ -13,7 +13,7 @@ use LaravelConfigrypt\Support\EnvironmentDecryptor;
  * @method static void decryptAll()
  * @method static array<string, mixed> getAllDecrypted()
  *
- * @see \LaravelConfigrypt\Support\EnvironmentDecryptor
+ * @see EnvironmentDecryptor
  */
 class ConfigryptEnv extends Facade
 {

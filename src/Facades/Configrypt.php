@@ -14,7 +14,7 @@ use LaravelConfigrypt\Services\ConfigryptService;
  * @method static string getPrefix()
  * @method static ?string getKey()
  *
- * @see \LaravelConfigrypt\Services\ConfigryptService
+ * @see ConfigryptService
  */
 class Configrypt extends Facade
 {
