@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use LaravelConfigrypt\Services\ConfigryptService;
 
 describe('ConfigryptService', function (): void {
