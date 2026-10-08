@@ -95,7 +95,7 @@ return [
 
 ### 1. Install the package
 
-**Requirements:** PHP 8.3+ and Laravel 12 or 13.
+**Requirements:** PHP 8.4+ and Laravel 12 or 13.
 
 ```bash
 composer require grazulex/laravel-configrypt
