@@ -58,6 +58,17 @@ class ConfigryptService
     }
 
     /**
+     * Decrypt a value with this service and encrypt it again with another one.
+     *
+     * Used for key rotation: this service holds the current key and the
+     * target service holds the new key.
+     */
+    public function reEncrypt(string $encryptedValue, self $target): string
+    {
+        return $target->encrypt($this->decrypt($encryptedValue));
+    }
+
+    /**
      * Check if a value is encrypted (has the prefix).
      */
     public function isEncrypted(string $value): bool
