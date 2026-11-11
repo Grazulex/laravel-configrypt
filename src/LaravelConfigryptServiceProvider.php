@@ -8,6 +8,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use LaravelConfigrypt\Commands\DecryptCommand;
 use LaravelConfigrypt\Commands\EncryptCommand;
+use LaravelConfigrypt\Commands\RotateKeysCommand;
 use LaravelConfigrypt\Services\ConfigryptService;
 use LaravelConfigrypt\Support\EnvironmentDecryptor;
 use Override;
@@ -62,6 +63,7 @@ class LaravelConfigryptServiceProvider extends ServiceProvider
             $this->commands([
                 EncryptCommand::class,
                 DecryptCommand::class,
+                RotateKeysCommand::class,
             ]);
         }
     }
