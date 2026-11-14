@@ -70,4 +70,34 @@ return [
 
     'auto_decrypt' => env('CONFIGRYPT_AUTO_DECRYPT', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Plain-Text Check
+    |--------------------------------------------------------------------------
+    |
+    | Used by the configrypt:check command. Variables whose name matches one
+    | of the "patterns" (case-insensitive, "*" as wildcard) must hold an
+    | encrypted value. Variables listed in "ignore" are never reported.
+    |
+    */
+
+    'check' => [
+        'patterns' => [
+            '*PASSWORD*',
+            '*PASSWD*',
+            '*_PASS',
+            '*SECRET*',
+            '*TOKEN*',
+            '*_KEY',
+            '*API_KEY*',
+            '*PRIVATE*',
+            '*CREDENTIAL*',
+        ],
+        'ignore' => [
+            'APP_KEY',
+            'CONFIGRYPT_KEY',
+            'CONFIGRYPT_PREVIOUS_KEYS',
+        ],
+    ],
+
 ];

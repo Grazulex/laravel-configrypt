@@ -6,6 +6,7 @@ namespace LaravelConfigrypt;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use LaravelConfigrypt\Commands\CheckCommand;
 use LaravelConfigrypt\Commands\DecryptCommand;
 use LaravelConfigrypt\Commands\EncryptCommand;
 use LaravelConfigrypt\Commands\RotateKeysCommand;
@@ -66,6 +67,7 @@ class LaravelConfigryptServiceProvider extends ServiceProvider
                 EncryptCommand::class,
                 DecryptCommand::class,
                 RotateKeysCommand::class,
+                CheckCommand::class,
             ]);
         }
     }
