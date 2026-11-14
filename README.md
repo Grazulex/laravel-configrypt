@@ -80,6 +80,9 @@ return [
     // Use a dedicated key or fallback to APP_KEY
     'key' => env('CONFIGRYPT_KEY', env('APP_KEY')),
 
+    // Old keys accepted for decryption only (comma-separated), for key rotation
+    'previous_keys' => env('CONFIGRYPT_PREVIOUS_KEYS', ''),
+
     // Prefix used to identify encrypted values
     'prefix' => env('CONFIGRYPT_PREFIX', 'ENC:'),
 

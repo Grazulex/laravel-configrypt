@@ -49,13 +49,19 @@ class ConfigValue implements Stringable
                 $configryptKey = config('configrypt.key') ?? config('app.key');
                 $prefix = config('configrypt.prefix', 'ENC:');
                 $cipher = config('configrypt.cipher', 'AES-256-CBC');
+                $previousKeys = config('configrypt.previous_keys');
 
                 // Default key for testing if no config available
                 if (! $configryptKey) {
                     $configryptKey = 'test-key-1234567890123456789012';
                 }
 
-                $service = new ConfigryptService($configryptKey, $prefix, $cipher);
+                $service = new ConfigryptService(
+                    $configryptKey,
+                    $prefix,
+                    $cipher,
+                    is_array($previousKeys) || is_string($previousKeys) ? $previousKeys : null
+                );
             } else {
                 $service = app(ConfigryptService::class);
             }

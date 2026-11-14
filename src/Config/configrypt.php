@@ -19,6 +19,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Previous Encryption Keys
+    |--------------------------------------------------------------------------
+    |
+    | Keys that were used before a key rotation. They are only used to
+    | decrypt values: when the current key cannot decrypt a value, each
+    | previous key is tried in order. New values are always encrypted with
+    | the current key. Use a comma-separated list or an array of keys.
+    |
+    */
+
+    'previous_keys' => env('CONFIGRYPT_PREVIOUS_KEYS', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Encryption Prefix
     |--------------------------------------------------------------------------
     |
@@ -55,5 +69,35 @@ return [
     */
 
     'auto_decrypt' => env('CONFIGRYPT_AUTO_DECRYPT', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Plain-Text Check
+    |--------------------------------------------------------------------------
+    |
+    | Used by the configrypt:check command. Variables whose name matches one
+    | of the "patterns" (case-insensitive, "*" as wildcard) must hold an
+    | encrypted value. Variables listed in "ignore" are never reported.
+    |
+    */
+
+    'check' => [
+        'patterns' => [
+            '*PASSWORD*',
+            '*PASSWD*',
+            '*_PASS',
+            '*SECRET*',
+            '*TOKEN*',
+            '*_KEY',
+            '*API_KEY*',
+            '*PRIVATE*',
+            '*CREDENTIAL*',
+        ],
+        'ignore' => [
+            'APP_KEY',
+            'CONFIGRYPT_KEY',
+            'CONFIGRYPT_PREVIOUS_KEYS',
+        ],
+    ],
 
 ];

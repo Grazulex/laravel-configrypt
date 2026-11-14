@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LaravelConfigrypt\Services;
 
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Encryption\Encrypter;
 use InvalidArgumentException;
 
@@ -11,10 +12,30 @@ class ConfigryptService
 {
     protected Encrypter $encrypter;
 
+    /**
+     * Encrypters built from the previous keys, only used for decryption.
+     *
+     * @var array<int, Encrypter>
+     */
+    protected array $previousEncrypters = [];
+
+    /**
+     * The previous keys, in the order they are tried.
+     *
+     * @var array<int, string>
+     */
+    protected array $previousKeys = [];
+
+    /**
+     * @param  array<int|string, mixed>|string|null  $previousKeys  Keys that are only used to decrypt values
+     *                                                              encrypted before a key rotation. Either an
+     *                                                              array or a comma-separated string.
+     */
     public function __construct(
         protected ?string $key,
         protected string $prefix = 'ENC:',
-        string $cipher = 'AES-256-CBC'
+        string $cipher = 'AES-256-CBC',
+        array|string|null $previousKeys = null
     ) {
         // For PHPStan analysis, use a dummy key if no key is provided
         if (in_array($key, [null, '', '0'], true)) {
@@ -25,13 +46,20 @@ class ConfigryptService
             }
         }
 
-        // Ensure the key is the right length for the cipher
-        if ($cipher === 'AES-256-CBC' && strlen($key) !== 32) {
-            // Generate a proper key from the provided key
-            $key = hash('sha256', $key, true);
-        }
+        $this->encrypter = $this->makeEncrypter($key, $cipher);
 
-        $this->encrypter = new Encrypter($key, $cipher);
+        foreach (self::normalizeKeys($previousKeys) as $previousKey) {
+            if ($previousKey === $key) {
+                continue;
+            }
+
+            if (in_array($previousKey, $this->previousKeys, true)) {
+                continue;
+            }
+
+            $this->previousKeys[] = $previousKey;
+            $this->previousEncrypters[] = $this->makeEncrypter($previousKey, $cipher);
+        }
     }
 
     /**
@@ -46,6 +74,9 @@ class ConfigryptService
 
     /**
      * Decrypt a value, removing the prefix if present.
+     *
+     * The current key is tried first, then each previous key in order.
+     * When no key can decrypt the value, the error of the current key is thrown.
      */
     public function decrypt(string $encryptedValue): string
     {
@@ -54,7 +85,19 @@ class ConfigryptService
             $encryptedValue = substr($encryptedValue, strlen($this->prefix));
         }
 
-        return $this->encrypter->decrypt($encryptedValue);
+        try {
+            return $this->encrypter->decrypt($encryptedValue);
+        } catch (DecryptException $decryptException) {
+            foreach ($this->previousEncrypters as $previousEncrypter) {
+                try {
+                    return $previousEncrypter->decrypt($encryptedValue);
+                } catch (DecryptException) {
+                    // Try the next previous key
+                }
+            }
+
+            throw $decryptException;
+        }
     }
 
     /**
@@ -90,5 +133,68 @@ class ConfigryptService
     public function getKey(): ?string
     {
         return $this->key;
+    }
+
+    /**
+     * Get the previous keys accepted for decryption.
+     *
+     * @return array<int, string>
+     */
+    public function getPreviousKeys(): array
+    {
+        return $this->previousKeys;
+    }
+
+    /**
+     * Normalize a list of keys given as an array or a comma-separated string.
+     *
+     * Empty entries and non-string values are ignored.
+     *
+     * @param  array<int|string, mixed>|string|null  $keys
+     *
+     * @return array<int, string>
+     */
+    public static function normalizeKeys(array|string|null $keys): array
+    {
+        if ($keys === null) {
+            return [];
+        }
+
+        if (is_string($keys)) {
+            $keys = explode(',', $keys);
+        }
+
+        $normalized = [];
+
+        foreach ($keys as $key) {
+            if (! is_string($key)) {
+                continue;
+            }
+
+            $key = trim($key);
+
+            if ($key === '') {
+                continue;
+            }
+
+            if ($key === '0') {
+                continue;
+            }
+
+            $normalized[] = $key;
+        }
+
+        return $normalized;
+    }
+
+    protected function makeEncrypter(string $key, string $cipher): Encrypter
+    {
+        // Ensure the key is the right length for the cipher
+        if ($cipher === 'AES-256-CBC' && strlen($key) !== 32) {
+            // Generate a proper key from the provided key
+            $key = hash('sha256', $key, true);
+        }
+
+        return new Encrypter($key, $cipher);
     }
 }
