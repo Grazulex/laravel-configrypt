@@ -30,11 +30,13 @@ class LaravelConfigryptServiceProvider extends ServiceProvider
 
         $this->app->singleton(ConfigryptService::class, function ($app): ConfigryptService {
             $key = config('configrypt.key');
+            $previousKeys = config('configrypt.previous_keys');
 
             return new ConfigryptService(
                 key: $key,
                 prefix: config('configrypt.prefix', 'ENC:'),
-                cipher: config('configrypt.cipher', 'AES-256-CBC')
+                cipher: config('configrypt.cipher', 'AES-256-CBC'),
+                previousKeys: is_array($previousKeys) || is_string($previousKeys) ? $previousKeys : null
             );
         });
 

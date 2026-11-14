@@ -13,6 +13,7 @@ use LaravelConfigrypt\Services\ConfigryptService;
  * @method static bool isEncrypted(string $value)
  * @method static string getPrefix()
  * @method static ?string getKey()
+ * @method static array<int, string> getPreviousKeys()
  *
  * @see ConfigryptService
  */

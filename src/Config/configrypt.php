@@ -19,6 +19,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Previous Encryption Keys
+    |--------------------------------------------------------------------------
+    |
+    | Keys that were used before a key rotation. They are only used to
+    | decrypt values: when the current key cannot decrypt a value, each
+    | previous key is tried in order. New values are always encrypted with
+    | the current key. Use a comma-separated list or an array of keys.
+    |
+    */
+
+    'previous_keys' => env('CONFIGRYPT_PREVIOUS_KEYS', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Encryption Prefix
     |--------------------------------------------------------------------------
     |
